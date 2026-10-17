@@ -9,6 +9,8 @@
 #include <QMutexLocker>
 #include <QTextStream>
 
+#include <QJsonValue>
+#include <QVariantMap>
 namespace shuios {
 
 Ledger &Ledger::instance()

@@ -9,6 +9,7 @@
 #include <QJsonObject>
 #include <QStandardPaths>
 
+#include <QVariantMap>
 namespace shuios {
 
 Trash &Trash::instance()

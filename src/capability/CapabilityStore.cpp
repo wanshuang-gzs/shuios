@@ -11,6 +11,7 @@
 #include <QSaveFile>
 #include <QStandardPaths>
 
+#include <QDateTime>
 namespace shuios {
 
 // ═══════════════════════════════════════════════════════════

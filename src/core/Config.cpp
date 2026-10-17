@@ -7,6 +7,7 @@
 #include <QJsonObject>
 #include <QStandardPaths>
 
+#include <QSettings>
 namespace shuios {
 
 Config &Config::instance()

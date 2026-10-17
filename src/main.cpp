@@ -23,6 +23,12 @@
 #include <QQuickStyle>
 #include <QStandardPaths>
 
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonValue>
+#include <QVariantList>
+#include <QVariantMap>
 using namespace shuios;
 
 // 给 QML 用的门面对象：把权限、意图、大脑封装成简洁的接口

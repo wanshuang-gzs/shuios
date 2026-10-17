@@ -11,6 +11,7 @@
 #include <QProcessEnvironment>
 #include <QUrl>
 
+#include <QNetworkAccessManager>
 namespace shuios {
 
 // ── Message ───────────────────────────────────────────────

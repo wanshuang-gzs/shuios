@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <QTextStream>
 
+#include <QVariantMap>
 namespace shuios {
 namespace FileActions {
 

@@ -4,6 +4,8 @@
 #include <QDir>
 #include <QFileInfo>
 
+#include <QRegularExpression>
+#include <QRegularExpressionMatch>
 namespace shuios {
 
 // ── Plan ──────────────────────────────────────────────────
