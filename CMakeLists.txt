@@ -61,6 +61,7 @@ set(SHUIOS_SOURCES
     src/actions/FileActions.cpp
     src/actions/Trash.cpp
 
+    src/brain/BrainClient.cpp
     src/brain/DeepSeekProvider.cpp
 )
 
