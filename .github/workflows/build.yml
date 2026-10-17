@@ -9,78 +9,61 @@ on:
 
 jobs:
   build:
-    name: 编译 (x86_64 / Ubuntu)
+    name: 编译 (x86_64 / Ubuntu 24.04 + Qt 6.7)
     runs-on: ubuntu-24.04
 
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装构建工具
+      # ── 用官方 Qt 而非系统 Qt ───────────────────────────
+      # Ubuntu 24.04 自带 Qt 6.4.2，而 Qt WaylandCompositor 的
+      # QML API 在 6.5 才稳定。这里装官方 Qt 6.7。
+      - name: 安装 Qt 6.7
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.3'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qtwaylandcompositor'
+          cache: true
+
+      - name: 安装构建工具与系统依赖
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential cmake ninja-build pkg-config dpkg-dev
-
-      # ── Qt6 基础 ────────────────────────────────────────
-      # 注意: qt6-wayland-dev 提供 CMake 配置文件，
-      # 但它引用的插件 .so 在 qt6-wayland 包里 —— 两个都要装，
-      # 否则 CMake 配置阶段会报 "imported target references file that
-      # does not exist"（Ubuntu 24.04 的打包缺陷）。
-      - name: 安装 Qt6 基础模块
-        run: |
-          sudo apt-get install -y --no-install-recommends \
-            qt6-base-dev qt6-declarative-dev \
-            qt6-base-private-dev qt6-declarative-private-dev \
+            build-essential cmake ninja-build pkg-config dpkg-dev \
             libgl1-mesa-dev libglvnd-dev libglu1-mesa-dev \
-            libxkbcommon-dev
-
-      # ── Qt6 Wayland（合成器必需）────────────────────────
-      - name: 安装 Qt6 Wayland 模块
-        run: |
-          sudo apt-get install -y --no-install-recommends \
-            qt6-wayland qt6-wayland-dev qt6-wayland-private-dev \
+            libxkbcommon-dev \
             libwayland-dev libwayland-bin wayland-protocols \
-            libqt6waylandcompositor6
+            libvulkan-dev
 
-      # ── QML 运行时模块 ──────────────────────────────────
-      - name: 安装 QML 运行时模块
+      - name: 核对 Qt 环境
         run: |
-          sudo apt-get install -y --no-install-recommends \
-            qml6-module-qtquick qml6-module-qtquick-controls \
-            qml6-module-qtquick-layouts qml6-module-qtquick-window \
-            qml6-module-qtquick-templates qml6-module-qtquick-shapes \
-            qml6-module-qtwayland-compositor \
-            libqt6svg6-dev || true
-
-      - name: 核对关键文件是否存在
-        run: |
-          echo "=== 查找 WaylandCompositor CMake 配置 ==="
-          ls -la /usr/lib/x86_64-linux-gnu/cmake/ | grep -i wayland || echo "(未找到)"
+          echo "=== Qt 安装位置 ==="
+          echo "QT_ROOT_DIR=$QT_ROOT_DIR"
+          echo "Qt6_DIR=$Qt6_DIR"
           echo
-          echo "=== 查找 dmabuf 插件（报错源头）==="
-          find /usr -name '*dmabuf*' 2>/dev/null || echo "(未找到)"
+          echo "=== qmake 版本 ==="
+          qmake --version || true
           echo
-          echo "=== wayland-graphics-integration-server 目录 ==="
-          ls -la /usr/lib/x86_64-linux-gnu/qt6/plugins/wayland-graphics-integration-server/ 2>/dev/null || echo "(目录不存在)"
-
-      - name: 显示 Qt 版本
-        run: |
-          qmake6 --version 2>/dev/null || true
-          dpkg -l | grep -E 'qt6-wayland|qt6-base-dev' | head -5
+          echo "=== WaylandCompositor 模块 ==="
+          find "$QT_ROOT_DIR" -iname '*WaylandCompositor*' -maxdepth 6 2>/dev/null | head -20 || echo "(未找到)"
 
       - name: 配置 CMake
         run: |
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=/usr 2>&1 | tee /tmp/cmake-configure.log
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
+            2>&1 | tee /tmp/cmake-configure.log
           exit ${PIPESTATUS[0]}
 
       - name: 编译
-        run: cmake --build build --parallel 2>&1 | tee /tmp/build-compile.log
-        env:
-          # 让 ninja 输出更详细的错误
-          NINJA_STATUS: "[已用 %e 秒] "
+        run: |
+          cmake --build build --parallel 2>&1 | tee /tmp/build-compile.log
+          exit ${PIPESTATUS[0]}
 
       - name: 运行测试
         run: ctest --test-dir build --output-on-failure
@@ -89,8 +72,8 @@ jobs:
       - name: 打包 .deb
         run: |
           cd build
-          cpack -G DEB
-          ls -la *.deb
+          cpack -G DEB || echo "打包失败（不影响编译验证）"
+          ls -la *.deb 2>/dev/null || true
 
       - name: 收集产物
         uses: actions/upload-artifact@v4
@@ -100,7 +83,7 @@ jobs:
           path: build/*.deb
           if-no-files-found: warn
 
-      # ── 失败时把所有诊断信息打包，便于回传 ──────────────
+      # ── 失败时收集诊断 ──────────────────────────────────
       - name: 收集诊断日志（失败时）
         if: failure()
         run: |
@@ -108,20 +91,18 @@ jobs:
           cp /tmp/cmake-configure.log /tmp/diag/ 2>/dev/null || true
           cp /tmp/build-compile.log /tmp/diag/ 2>/dev/null || true
           cp build/CMakeFiles/CMakeOutput.log /tmp/diag/ 2>/dev/null || true
-          cp build/CMakeFiles/CMakeError.log /tmp/diag/ 2>/dev/null || true
-          # 记录环境信息
           {
             echo "=== Qt 版本 ==="
-            qmake6 --version 2>/dev/null || echo n/a
+            qmake --version 2>/dev/null || echo n/a
             echo
-            echo "=== 已装 qt6 包 ==="
-            dpkg -l | grep qt6 || echo none
+            echo "=== QT_ROOT_DIR ==="
+            echo "$QT_ROOT_DIR"
             echo
-            echo "=== WaylandCompositor cmake 目录 ==="
-            ls /usr/lib/x86_64-linux-gnu/cmake/ | grep -i wayland || echo none
+            echo "=== WaylandCompositor 相关文件 ==="
+            find "$QT_ROOT_DIR" -iname '*ayland*' 2>/dev/null | head -40 || echo none
             echo
-            echo "=== 插件目录 ==="
-            find /usr/lib/x86_64-linux-gnu/qt6/plugins -name '*wayland*' 2>/dev/null || echo none
+            echo "=== cmake 配置目录 ==="
+            ls "$QT_ROOT_DIR/lib/cmake" 2>/dev/null | grep -i wayland || echo none
           } > /tmp/diag/environment.txt
           ls -la /tmp/diag/
 

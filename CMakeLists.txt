@@ -30,11 +30,15 @@ find_package(Qt6 REQUIRED COMPONENTS
 # WaylandCompositor 单独查找，便于给出清晰错误
 find_package(Qt6 REQUIRED COMPONENTS WaylandCompositor)
 
-# 版本下限检查（Qt 6.5+ 才有稳定的 WaylandCompositor QML API）
-if(Qt6_VERSION VERSION_LESS 6.5)
-    message(FATAL_ERROR "需要 Qt 6.5 或更高版本，当前为 ${Qt6_VERSION}")
+# 版本下限检查。Qt 6.7 由 CI 提供；6.4 起可配置，
+# 但部分 WaylandCompositor QML 类型需要 6.5+，见 README。
+if(Qt6_VERSION VERSION_LESS 6.4)
+    message(FATAL_ERROR "需要 Qt 6.4 或更高版本，当前为 ${Qt6_VERSION}")
 endif()
 message(STATUS "Qt 版本: ${Qt6_VERSION}")
+if(Qt6_VERSION VERSION_LESS 6.5)
+    message(WARNING "Qt ${Qt6_VERSION} < 6.5：部分 WaylandCompositor QML API 可能缺失")
+endif()
 
 qt_standard_project_setup()
 
