@@ -9,91 +9,67 @@ project(shuios
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
 
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
 endif()
 
-set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 add_compile_options(-Wall -Wextra -Wno-unused-parameter)
 
 # ── Qt6 依赖 ──────────────────────────────────────────────
-# 注意: WaylandCompositor 是 GPLv3-only，本项目整体采用 GPLv3
+# WaylandCompositor 是 GPLv3-only，本项目整体采用 GPLv3
 find_package(Qt6 REQUIRED COMPONENTS
     Core
     Gui
     Qml
     Quick
     QuickControls2
-    WaylandCompositor
     Network
 )
 
+# WaylandCompositor 单独查找，便于给出清晰错误
+find_package(Qt6 REQUIRED COMPONENTS WaylandCompositor)
+
+# 版本下限检查（Qt 6.5+ 才有稳定的 WaylandCompositor QML API）
+if(Qt6_VERSION VERSION_LESS 6.5)
+    message(FATAL_ERROR "需要 Qt 6.5 或更高版本，当前为 ${Qt6_VERSION}")
+endif()
+message(STATUS "Qt 版本: ${Qt6_VERSION}")
+
 qt_standard_project_setup()
-qt_policy(SET QTP0001 NEW)
 
 # ── 源文件 ────────────────────────────────────────────────
 set(SHUIOS_SOURCES
     src/main.cpp
 
-    # 核心
     src/core/Config.cpp
     src/core/Log.cpp
 
-    # 身体: 合成器
     src/compositor/ShimCompositor.cpp
     src/compositor/WindowManager.cpp
 
-    # 权限内核
     src/capability/CapabilityStore.cpp
     src/capability/Ledger.cpp
 
-    # 意图
     src/intent/IntentParser.cpp
 
-    # 执行
     src/actions/ActionRegistry.cpp
     src/actions/FileActions.cpp
     src/actions/Trash.cpp
 
-    # 大脑接口
-    src/brain/BrainClient.cpp
     src/brain/DeepSeekProvider.cpp
 )
 
-set(SHUIOS_HEADERS
-    src/core/Config.h
-    src/core/Log.h
-
-    src/compositor/ShimCompositor.h
-    src/compositor/WindowManager.h
-
-    src/capability/CapabilityStore.h
-    src/capability/Ledger.h
-
-    src/intent/Plan.h
-    src/intent/IntentParser.h
-
-    src/actions/Action.h
-    src/actions/ActionRegistry.h
-    src/actions/FileActions.h
-    src/actions/Trash.h
-
-    src/brain/Message.h
-    src/brain/BrainClient.h
-    src/brain/DeepSeekProvider.h
-)
-
 # ── 可执行文件 ────────────────────────────────────────────
-qt_add_executable(shuios ${SHUIOS_SOURCES} ${SHUIOS_HEADERS})
+qt_add_executable(shuios ${SHUIOS_SOURCES})
 
 target_include_directories(shuios PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 # ── QML 模块 ──────────────────────────────────────────────
+# 注意: QML 源文件放在 qml/ 下，qt_add_qml_module 会自动生成
+# "qrc:/qt/qml/Shuios/..." 路径，与 loadFromModule("Shuios","Main") 对应。
 qt_add_qml_module(shuios
     URI Shuios
     VERSION 1.0
@@ -112,8 +88,8 @@ target_link_libraries(shuios PRIVATE
     Qt6::Qml
     Qt6::Quick
     Qt6::QuickControls2
-    Qt6::WaylandCompositor
     Qt6::Network
+    Qt6::WaylandCompositor
 )
 
 # ── 安装规则 ──────────────────────────────────────────────
@@ -123,12 +99,10 @@ install(TARGETS shuios
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# Wayland 会话启动文件: 让登录管理器能选 "氵系统" 会话
 install(FILES packaging/session/shuios.desktop
     DESTINATION ${CMAKE_INSTALL_DATADIR}/wayland-sessions
 )
 
-# 应用菜单项
 install(FILES packaging/shuios-app.desktop
     DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
 )
@@ -137,7 +111,7 @@ install(FILES packaging/shuios-app.desktop
 enable_testing()
 add_subdirectory(tests)
 
-# ── 打包信息 ──────────────────────────────────────────────
+# ── 打包 ──────────────────────────────────────────────────
 set(CPACK_PACKAGE_NAME "shuios")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_CONTACT "shuios project")
