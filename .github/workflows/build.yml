@@ -62,8 +62,23 @@ jobs:
 
       - name: 编译
         run: |
+          set +e
           cmake --build build --parallel 2>&1 | tee /tmp/build-compile.log
-          exit ${PIPESTATUS[0]}
+          RC=${PIPESTATUS[0]}
+          if [ $RC -ne 0 ]; then
+            echo "::group::编译错误摘要"
+            # 把错误提炼成 GitHub 注解 —— 便于通过 API 读取
+            grep -E "error:|undefined reference|FAILED:" /tmp/build-compile.log | head -20 | while IFS= read -r line; do
+              # 转义 GitHub 注解里的特殊字符
+              safe=$(echo "$line" | sed 's/%/%25/g; s/\r//g' | tr '\n' ' ')
+              echo "::error title=编译错误::$safe"
+            done
+            echo "::endgroup::"
+            echo
+            echo "=== 完整错误上下文 ==="
+            grep -B2 -A6 "error:\|undefined reference" /tmp/build-compile.log | head -100
+            exit $RC
+          fi
 
       - name: 运行测试
         run: ctest --test-dir build --output-on-failure

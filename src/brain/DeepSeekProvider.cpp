@@ -14,21 +14,8 @@
 #include <QNetworkAccessManager>
 namespace shuios {
 
-// ── Message ───────────────────────────────────────────────
-
-QString Message::roleName() const
-{
-    switch (role) {
-    case Role::System:    return QStringLiteral("system");
-    case Role::Assistant: return QStringLiteral("assistant");
-    case Role::User:      break;
-    }
-    return QStringLiteral("user");
-}
-
-Message Message::system(const QString &t)    { Message m; m.role = Role::System;    m.content = t; return m; }
-Message Message::user(const QString &t)      { Message m; m.role = Role::User;      m.content = t; return m; }
-Message Message::assistant(const QString &t) { Message m; m.role = Role::Assistant; m.content = t; return m; }
+// ── Message 的实现已移至 BrainClient.cpp ──────────────────
+// （避免重复定义：Message::roleName / system / user / assistant）
 
 // ── DeepSeekProvider ──────────────────────────────────────
 

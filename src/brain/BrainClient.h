@@ -34,8 +34,10 @@ class BrainClient : public QObject
 {
     Q_OBJECT
 public:
-    explicit BrainClient(QObject *parent = nullptr) : QObject(parent) {}
-    ~BrainClient() override = default;
+    explicit BrainClient(QObject *parent = nullptr);
+    // 析构定义在 BrainClient.cpp —— 保证 vtable 与 moc 生成的
+    // 元对象代码在同一个编译单元里，避免链接期找不到符号。
+    ~BrainClient() override;
 
     // 流式对话。边生成边回调，界面不卡顿。
     //  N100 单核弱，阻塞式请求会让界面"死"几秒，所以必须流式。
