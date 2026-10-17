@@ -1,0 +1,45 @@
+# 氵系统 内核配置片段
+# 在 x86_64_defconfig 之上叠加
+
+# ── Intel 核显（N100 = Alder Lake-N, Gen12）──────────────
+CONFIG_DRM=y
+CONFIG_DRM_I915=y
+CONFIG_DRM_FBDEV_EMULATION=y
+
+# ── 输入 ──────────────────────────────────────────────────
+CONFIG_INPUT_EVDEV=y
+CONFIG_INPUT_MOUSEDEV=y
+CONFIG_HID_GENERIC=y
+CONFIG_USB_HID=y
+
+# ── 文件系统 ──────────────────────────────────────────────
+CONFIG_EXT4_FS=y
+CONFIG_EXT4_FS_POSIX_ACL=y
+CONFIG_TMPFS=y
+CONFIG_TMPFS_POSIX_ACL=y
+CONFIG_ISO9660_FS=y
+CONFIG_VFAT_FS=y
+
+# ── 网络（大脑在云上，必须有网）───────────────────────────
+CONFIG_NET=y
+CONFIG_PACKET=y
+CONFIG_UNIX=y
+CONFIG_INET=y
+CONFIG_E1000E=y
+CONFIG_R8169=y
+CONFIG_USB_RTL8152=y
+CONFIG_WLAN=y
+CONFIG_CFG80211=y
+CONFIG_MAC80211=y
+
+# ── 安全 ──────────────────────────────────────────────────
+CONFIG_SECURITY=y
+CONFIG_SECURITY_YAMA=y
+
+# ── 其他 ──────────────────────────────────────────────────
+CONFIG_FB=y
+CONFIG_FRAMEBUFFER_CONSOLE=y
+CONFIG_FONT_8x16=y
+CONFIG_PRINTK=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y

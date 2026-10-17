@@ -1,0 +1,16 @@
+config BR2_PACKAGE_QT6WAYLANDCOMPOSITOR
+	bool "qt6waylandcompositor"
+	depends on BR2_PACKAGE_QT6BASE_GUI
+	depends on BR2_PACKAGE_WAYLAND
+	select BR2_PACKAGE_WAYLAND_PROTOCOLS
+	help
+	  Qt6 Wayland Compositor 模块。
+
+	  Buildroot 官方没有这个包，本外部树自建。
+	  它提供 QtWaylandCompositor 库和 QML 类型，
+	  是 shuios 自建桌面合成器的基础。
+
+	  https://doc.qt.io/qt-6/qtwaylandcompositor-index.html
+
+comment "qt6waylandcompositor needs Qt6 GUI and Wayland"
+	depends on !BR2_PACKAGE_QT6BASE_GUI || !BR2_PACKAGE_WAYLAND

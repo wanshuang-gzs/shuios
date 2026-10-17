@@ -1,0 +1,32 @@
+#!/bin/sh
+# 网络初始化（大脑在云上，必须有网）
+case "$1" in
+  start)
+    echo "启动网络..."
+    ip link set lo up 2>/dev/null
+    # 找第一个可用网卡（有线优先）
+    for iface in eth0 enp1s0 enp2s0 enp3s0; do
+      if [ -e "/sys/class/net/$iface" ]; then
+        ip link set "$iface" up
+        udhcpc -i "$iface" -b -q -s /etc/udhcpc.script
+        echo "已启用 $iface"
+        break
+      fi
+    done
+    ;;
+  stop)
+    for iface in eth0 enp1s0 enp2s0 enp3s0; do
+      [ -e "/sys/class/net/$iface" ] && ip link set "$iface" down
+    done
+    ;;
+  restart)
+    "$0" stop
+    sleep 1
+    "$0" start
+    ;;
+  *)
+    echo "用法: $0 {start|stop|restart}"
+    exit 1
+    ;;
+esac
+exit 0

@@ -113,8 +113,12 @@ install(FILES packaging/shuios-app.desktop
 )
 
 # ── 测试 ──────────────────────────────────────────────────
-enable_testing()
-add_subdirectory(tests)
+# 交叉编译时关闭（测试要在目标架构跑，不是构建机）
+option(SHUIOS_BUILD_TESTS "构建并运行单元测试" ON)
+if(SHUIOS_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 # ── 打包 ──────────────────────────────────────────────────
 set(CPACK_PACKAGE_NAME "shuios")

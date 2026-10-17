@@ -1,6 +1,10 @@
 # Build artifacts
 build/
+output/
+buildroot-src/
 *.deb
+*.iso
+*.img
 *.o
 *.so
 moc_*.cpp

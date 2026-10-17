@@ -1,0 +1,5 @@
+menu "氵系统 shuios"
+
+source "$BR2_EXTERNAL_SHUIOS_PATH/package/shuios/Config.in"
+
+endmenu

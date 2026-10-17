@@ -1,0 +1,144 @@
+name: 构建氵系统镜像
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'buildroot/**'
+      - 'src/**'
+      - 'qml/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/build-iso.yml'
+
+jobs:
+  # ══════════════════════════════════════════════════════════
+  #  快速校验：只跑 defconfig，2 分钟出结果
+  #  作用：先确认 Buildroot 配置符号没写错，
+  #        避免直接进 4 小时的全量编译才发现配置错误。
+  # ══════════════════════════════════════════════════════════
+  config-check:
+    name: 配置校验
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Buildroot 构建依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential bison flex rsync bc cpio unzip file \
+            wget curl git python3 python3-pip \
+            libncurses-dev libssl-dev libelf-dev \
+            git ca-certificates
+
+      - name: 获取 Buildroot (2024.02 LTS)
+        run: |
+          git clone --depth 1 --branch 2024.02.x \
+            https://github.com/buildroot/buildroot.git buildroot-src
+
+      - name: 应用氵系统配置
+        run: |
+          cd buildroot-src
+          make O=$PWD/../output BR2_EXTERNAL=$PWD/../buildroot \
+               shuios_x86_64_defconfig 2>&1 | tail -30
+          echo "━━ 配置生成成功 ━━"
+
+      - name: 导出实际生效的配置（诊断用）
+        run: |
+          cd buildroot-src
+          make O=$PWD/../output BR2_EXTERNAL=$PWD/../buildroot savedefconfig 2>&1 | tail -10
+          echo "=== 实际生效的关键选项 ==="
+          grep -E "QT6|CAGE|WAYLAND|MESA|WQY|SHUIOS|ISO9660" ../output/.config | head -60
+
+      - name: 确认外部树被识别
+        run: |
+          echo "=== 外部树路径 ==="
+          grep BR2_EXTERNAL ../output/.config || echo "未设置 BR2_EXTERNAL"
+          echo
+          echo "=== shuios 是否被选中 ==="
+          grep "BR2_PACKAGE_SHUIOS" ../output/.config || echo "shuios 未选中"
+
+  # ══════════════════════════════════════════════════════════
+  #  全量构建：出 ISO
+  # ══════════════════════════════════════════════════════════
+  build-iso:
+    name: 编译镜像 (x86_64)
+    needs: config-check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装构建依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential bison flex rsync bc cpio unzip file \
+            wget curl git python3 \
+            libncurses-dev libssl-dev libelf-dev \
+            ca-certificates
+
+      # ── 缓存源码下载（Buildroot 的 dl/ 目录）───────────
+      - name: 缓存源码包
+        uses: actions/cache@v4
+        with:
+          path: output/dl
+          key: br-dl-2024.02-${{ hashFiles('buildroot/configs/*.defconfig') }}
+          restore-keys: br-dl-2024.02-
+
+      - name: 获取 Buildroot
+        run: |
+          git clone --depth 1 --branch 2024.02.x \
+            https://github.com/buildroot/buildroot.git buildroot-src
+
+      - name: 配置
+        run: |
+          cd buildroot-src
+          make O=$PWD/../output BR2_EXTERNAL=$PWD/../buildroot \
+               shuios_x86_64_defconfig
+
+      - name: 编译（全量，耗时长）
+        run: |
+          cd buildroot-src
+          make O=$PWD/../output BR2_EXTERNAL=$PWD/../buildroot -j$(nproc) 2>&1 | \
+            tee /tmp/buildroot-build.log
+
+      - name: 显示产物
+        run: |
+          echo "=== 生成的镜像 ==="
+          ls -lh output/images/ || true
+          echo
+          echo "=== 镜像大小 ==="
+          du -sh output/images/*.iso output/images/*.img 2>/dev/null || true
+
+      - name: 上传 ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: shuios-iso
+          path: |
+            output/images/*.iso
+            output/images/*.img
+            output/images/使用说明.txt
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: 失败时收集日志
+        if: failure()
+        run: |
+          mkdir -p /tmp/diag
+          tail -300 /tmp/buildroot-build.log > /tmp/diag/build.log 2>/dev/null || true
+          cp output/.config /tmp/diag/ 2>/dev/null || true
+          echo "=== 失败的包 ===" > /tmp/diag/failed.txt
+          grep -iE "error|failed" /tmp/buildroot-build.log 2>/dev/null | tail -50 >> /tmp/diag/failed.txt || true
+
+      - name: 上传诊断日志
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iso-build-logs
+          path: /tmp/diag/
+          if-no-files-found: warn
