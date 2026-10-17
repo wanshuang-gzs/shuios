@@ -177,6 +177,8 @@ Rectangle {
                 ]
 
                 delegate: Rectangle {
+                    required property var modelData
+
                     width: parent.width
                     height: 36
                     radius: 4
@@ -248,6 +250,8 @@ Rectangle {
             Repeater {
                 model: trashPopup.items
                 delegate: Column {
+                    required property var modelData
+
                     width: parent.width
                     spacing: 2
                     Text {

@@ -14,11 +14,11 @@ ApplicationWindow {
     height: 720
     visible: true
     title: "氵系统"
-    color: Theme.bg
+    color: ui.bg
 
     // ── 配色：黑白灰三色 ──────────────────────────────────
     QtObject {
-        id: Theme
+        id: ui
         readonly property color bg:        "#0d0d0d"
         readonly property color surface:   "#161616"
         readonly property color surfaceHi: "#1f1f1f"
@@ -43,32 +43,32 @@ ApplicationWindow {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 48
-            color: Theme.surface
+            color: ui.surface
 
             Rectangle {
                 anchors.bottom: parent.bottom
                 width: parent.width; height: 1
-                color: Theme.border
+                color: ui.border
             }
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: Theme.pad
-                anchors.rightMargin: Theme.pad
+                anchors.leftMargin: ui.pad
+                anchors.rightMargin: ui.pad
                 spacing: 12
 
                 // 标识
                 Text {
                     text: "氵"
-                    color: Theme.text
+                    color: ui.text
                     font.pixelSize: 22
                     font.weight: Font.Bold
                 }
                 Text {
                     text: "shuios"
-                    color: Theme.textDim
+                    color: ui.textDim
                     font.pixelSize: 13
-                    font.family: Theme.mono
+                    font.family: ui.mono
                 }
 
                 Item { Layout.fillWidth: true }
@@ -85,7 +85,7 @@ ApplicationWindow {
                         text: Shuios.brainReady()
                               ? ("大脑 " + Shuios.brainName())
                               : "大脑未配置"
-                        color: Shuios.brainReady() ? Theme.textDim : "#e05252"
+                        color: Shuios.brainReady() ? ui.textDim : "#e05252"
                         font.pixelSize: 12
                     }
                 }
@@ -97,7 +97,7 @@ ApplicationWindow {
             id: conversation
             Layout.fillWidth: true
             Layout.fillHeight: true
-            theme: Theme
+            theme: ui
             onPlanRequested: (input) => root.handlePlan(input)
         }
 
@@ -105,7 +105,7 @@ ApplicationWindow {
         Taskbar {
             Layout.fillWidth: true
             Layout.preferredHeight: 44
-            theme: Theme
+            theme: ui
             onLedgerClicked: root.ledgerOpen = !root.ledgerOpen
         }
     }
@@ -114,7 +114,7 @@ ApplicationWindow {
     PlanConfirmDialog {
         id: planDialog
         anchors.fill: parent
-        theme: Theme
+        theme: ui
         visible: false
     }
 
@@ -127,33 +127,33 @@ ApplicationWindow {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: ledgerOpen ? Math.min(520, parent.width * 0.45) : 0
-        color: Theme.surface
+        color: ui.surface
         clip: true
         Behavior on width { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
         Rectangle {
             anchors.left: parent.left
             width: 1; height: parent.height
-            color: Theme.border
+            color: ui.border
         }
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: Theme.pad
+            anchors.margins: ui.pad
             spacing: 12
 
             RowLayout {
                 Layout.fillWidth: true
                 Text {
                     text: "审计账本"
-                    color: Theme.text
+                    color: ui.text
                     font.pixelSize: 14
                     font.weight: Font.Medium
                 }
                 Item { Layout.fillWidth: true }
                 Text {
                     text: "✕"
-                    color: Theme.textDim
+                    color: ui.textDim
                     font.pixelSize: 16
                     MouseArea {
                         anchors.fill: parent
@@ -166,7 +166,7 @@ ApplicationWindow {
 
             Text {
                 text: "系统做过的每件事、AI 申请过的每次权限，都在这里。不可篡改。"
-                color: Theme.textFaint
+                color: ui.textFaint
                 font.pixelSize: 11
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
@@ -180,12 +180,12 @@ ApplicationWindow {
                 TextArea {
                     id: ledgerText
                     readOnly: true
-                    color: Theme.textDim
-                    font.family: Theme.mono
+                    color: ui.textDim
+                    font.family: ui.mono
                     font.pixelSize: 11
                     wrapMode: TextArea.WrapAnywhere
                     text: root.ledgerOpen ? Shuios.ledgerTail(60) : ""
-                    background: Rectangle { color: Theme.bg; radius: 4 }
+                    background: Rectangle { color: ui.bg; radius: 4 }
                 }
             }
 
@@ -194,13 +194,13 @@ ApplicationWindow {
                 text: "刷新"
                 onClicked: ledgerText.text = Shuios.ledgerTail(60)
                 background: Rectangle {
-                    color: parent.hovered ? Theme.surfaceHi : Theme.bg
+                    color: parent.hovered ? ui.surfaceHi : ui.bg
                     radius: 4
-                    border.color: Theme.border
+                    border.color: ui.border
                 }
                 contentItem: Text {
                     text: parent.text
-                    color: Theme.textDim
+                    color: ui.textDim
                     font.pixelSize: 12
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter

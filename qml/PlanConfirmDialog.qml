@@ -132,6 +132,10 @@ Item {
                         model: dialog.currentPlan ? dialog.currentPlan.steps : []
 
                         delegate: RowLayout {
+                            // 显式声明，避免依赖隐式 modelData
+                            required property int index
+                            required property var modelData
+
                             width: stepCol.width
                             spacing: 12
 
