@@ -1,0 +1,18 @@
+# Build artifacts
+build/
+*.deb
+*.o
+*.so
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+
+# IDE
+.vscode/
+.idea/
+*.user
+
+# 密钥 —— 绝不能提交
+config.json
+*.key
+.env

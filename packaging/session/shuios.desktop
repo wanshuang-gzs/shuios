@@ -1,0 +1,12 @@
+# 氵系统 / shuios — Wayland 会话文件
+# 放在 /usr/share/wayland-sessions/ 下，
+# 登录管理器（SDDM/GDM 等）即可在选择列表里看到「氵系统」
+
+[Desktop Entry]
+Name=氵系统
+Name[en]=shuios
+Comment=AI-native desktop environment
+Comment[zh_CN]=氵系统 — 为 AI 重新设计的桌面环境
+Exec=shuios
+Type=Application
+DesktopNames=shuios

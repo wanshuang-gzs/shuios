@@ -1,0 +1,70 @@
+name: 构建 shuios
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:        # 允许在网页上手动点按钮触发
+
+jobs:
+  build:
+    name: 编译 (x86_64 / Ubuntu)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Qt6 与构建依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build pkg-config \
+            qt6-base-dev qt6-declarative-dev qt6-wayland-dev \
+            qt6-wayland-private-dev qt6-base-private-dev \
+            libgl1-mesa-dev libglvnd-dev \
+            libqt6svg6-dev qml6-module-qtquick \
+            qml6-module-qtquick-controls qml6-module-qtquick-layouts \
+            qml6-module-qtquick-window qml6-module-qtquick-templates \
+            qml6-module-qtwayland-compositor \
+            libwayland-dev libxkbcommon-dev \
+            dpkg-dev
+
+      - name: 显示 Qt 版本
+        run: qmake6 --version || dpkg -l | grep qt6-base-dev
+
+      - name: 配置 CMake
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr
+
+      - name: 编译
+        run: cmake --build build --parallel
+
+      - name: 运行测试
+        run: ctest --test-dir build --output-on-failure || true
+
+      - name: 打包 .deb
+        run: |
+          cd build
+          cpack -G DEB
+          ls -la *.deb
+
+      - name: 收集产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: shuios-deb
+          path: build/*.deb
+          if-no-files-found: warn
+
+      - name: 编译日志（失败时保存）
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            build/CMakeFiles/CMakeOutput.log
+            build/CMakeFiles/CMakeError.log
+          if-no-files-found: ignore
