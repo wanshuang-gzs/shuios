@@ -11,58 +11,107 @@ on:
       - 'CMakeLists.txt'
       - '.github/workflows/build-iso.yml'
 
+# 需要写权限，用于把诊断信息推回 ci-logs 分支
+permissions:
+  contents: write
+
 jobs:
   # ══════════════════════════════════════════════════════════
-  #  快速校验：只跑 defconfig，2 分钟出结果
-  #  作用：先确认 Buildroot 配置符号没写错，
-  #        避免直接进 4 小时的全量编译才发现配置错误。
+  #  快速校验：只跑 defconfig
   # ══════════════════════════════════════════════════════════
   config-check:
     name: 配置校验
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: 安装 Buildroot 构建依赖
+      - name: 安装依赖
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential bison flex rsync bc cpio unzip file \
-            wget curl git python3 python3-pip \
-            libncurses-dev libssl-dev libelf-dev \
-            git ca-certificates
+            wget curl git python3 \
+            libncurses-dev libssl-dev libelf-dev ca-certificates
 
       - name: 获取 Buildroot (2024.02 LTS)
         run: |
           git clone --depth 1 --branch 2024.02.x \
             https://github.com/buildroot/buildroot.git buildroot-src
 
-      - name: 应用氵系统配置
+      - name: 应用配置
+        shell: bash
         run: |
+          set -o pipefail
           cd buildroot-src
           make O=$PWD/../output BR2_EXTERNAL=$PWD/../buildroot \
-               shuios_x86_64_defconfig 2>&1 | tail -30
+               shuios_x86_64_defconfig 2>&1 | tail -40
           echo "━━ 配置生成成功 ━━"
 
-      - name: 导出实际生效的配置（诊断用）
+      - name: 回传配置诊断
+        if: always()
+        shell: bash
         run: |
-          cd buildroot-src
-          make O=$PWD/../output BR2_EXTERNAL=$PWD/../buildroot savedefconfig 2>&1 | tail -10
-          echo "=== 实际生效的关键选项 ==="
-          grep -E "QT6|CAGE|WAYLAND|MESA|WQY|SHUIOS|ISO9660" ../output/.config | head -60
+          set +e
+          mkdir -p ci-report
+          cp output/.config ci-report/config-full.txt 2>/dev/null
+          {
+            echo "=== 关键选项是否生效 ==="
+            for sym in \
+              BR2_x86_64 BR2_x86_corei7 \
+              BR2_PACKAGE_QT6BASE BR2_PACKAGE_QT6BASE_GUI \
+              BR2_PACKAGE_QT6BASE_WAYLAND BR2_PACKAGE_QT6BASE_NETWORK \
+              BR2_PACKAGE_QT6DECLARATIVE BR2_PACKAGE_QT6QUICKCONTROLS2 \
+              BR2_PACKAGE_QT6SVG BR2_PACKAGE_CAGE \
+              BR2_PACKAGE_WAYLAND BR2_PACKAGE_WAYLAND_PROTOCOLS \
+              BR2_PACKAGE_MESA3D BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_IRIS \
+              BR2_PACKAGE_MESA3D_OPENGL_EGL \
+              BR2_PACKAGE_WQY_ZENHEI BR2_PACKAGE_DEJAVU \
+              BR2_PACKAGE_SHUIOS \
+              BR2_TARGET_ROOTFS_ISO9660 BR2_TARGET_ROOTFS_ISO9660_HYBRID \
+              BR2_LINUX_KERNEL ; do
+              if grep -q "^${sym}=y" output/.config 2>/dev/null; then
+                echo "  [Y] ${sym}"
+              elif grep -q "^# ${sym} is not set" output/.config 2>/dev/null; then
+                echo "  [n] ${sym}  ← 存在但未启用"
+              else
+                echo "  [?] ${sym}  ← 符号不存在！"
+              fi
+            done
+            echo
+            echo "=== 已启用的所有 QT6 相关选项 ==="
+            grep -E "^BR2_PACKAGE_QT6.*=y" output/.config 2>/dev/null
+            echo
+            echo "=== 已启用的 MESA 相关选项 ==="
+            grep -E "^BR2_PACKAGE_MESA3D.*=y" output/.config 2>/dev/null
+            echo
+            echo "=== 已启用的字体 ==="
+            grep -iE "font|wqy|dejavu|noto" output/.config 2>/dev/null | grep "=y"
+          } > ci-report/summary.txt
+          cat ci-report/summary.txt
+          echo "REPORT_DONE=1" >> $GITHUB_ENV
 
-      - name: 确认外部树被识别
+      - name: 推回 ci-logs 分支
+        if: always()
+        shell: bash
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "=== 外部树路径 ==="
-          grep BR2_EXTERNAL ../output/.config || echo "未设置 BR2_EXTERNAL"
-          echo
-          echo "=== shuios 是否被选中 ==="
-          grep "BR2_PACKAGE_SHUIOS" ../output/.config || echo "shuios 未选中"
+          set -e
+          echo "run=${{ github.run_number }} job=config-check status=${{ job.status }}" >> ci-report/meta.txt
+          cd ci-report
+          rm -rf .git
+          git init -q
+          git checkout -q -b ci-logs
+          git config user.email "ci@shuios.local"
+          git config user.name "shuios-ci"
+          git add -A
+          git commit -q -m "配置校验报告 #${{ github.run_number }}" || true
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git" ci-logs
 
   # ══════════════════════════════════════════════════════════
-  #  全量构建：出 ISO
+  #  全量构建
   # ══════════════════════════════════════════════════════════
   build-iso:
     name: 编译镜像 (x86_64)
@@ -73,16 +122,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 安装构建依赖
+      - name: 安装依赖
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential bison flex rsync bc cpio unzip file \
             wget curl git python3 \
-            libncurses-dev libssl-dev libelf-dev \
-            ca-certificates
+            libncurses-dev libssl-dev libelf-dev ca-certificates
 
-      # ── 缓存源码下载（Buildroot 的 dl/ 目录）───────────
       - name: 缓存源码包
         uses: actions/cache@v4
         with:
@@ -96,49 +143,73 @@ jobs:
             https://github.com/buildroot/buildroot.git buildroot-src
 
       - name: 配置
+        shell: bash
         run: |
+          set -o pipefail
           cd buildroot-src
           make O=$PWD/../output BR2_EXTERNAL=$PWD/../buildroot \
                shuios_x86_64_defconfig
 
       - name: 编译（全量，耗时长）
+        id: build
+        shell: bash
         run: |
+          # pipefail: 否则 `make | tee` 的退出码是 tee 的，失败也显示绿
+          set -o pipefail
           cd buildroot-src
-          make O=$PWD/../output BR2_EXTERNAL=$PWD/../buildroot -j$(nproc) 2>&1 | \
-            tee /tmp/buildroot-build.log
+          make O=$PWD/../output BR2_EXTERNAL=$PWD/../buildroot -j$(nproc) 2>&1 \
+            | tee /tmp/buildroot-build.log
 
       - name: 显示产物
+        shell: bash
         run: |
           echo "=== 生成的镜像 ==="
           ls -lh output/images/ || true
-          echo
-          echo "=== 镜像大小 ==="
-          du -sh output/images/*.iso output/images/*.img 2>/dev/null || true
+          if ! ls output/images/*.iso >/dev/null 2>&1; then
+            echo "::error title=没有产出 ISO::output/images/ 下没有 .iso"
+            exit 1
+          fi
 
       - name: 上传 ISO
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: shuios-iso
           path: |
             output/images/*.iso
             output/images/*.img
-            output/images/使用说明.txt
           if-no-files-found: warn
           retention-days: 30
 
-      - name: 失败时收集日志
-        if: failure()
+      # ── 无论成败都回传诊断到 ci-logs 分支 ────────────────
+      - name: 回传构建诊断
+        if: always()
+        shell: bash
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir -p /tmp/diag
-          tail -300 /tmp/buildroot-build.log > /tmp/diag/build.log 2>/dev/null || true
-          cp output/.config /tmp/diag/ 2>/dev/null || true
-          echo "=== 失败的包 ===" > /tmp/diag/failed.txt
-          grep -iE "error|failed" /tmp/buildroot-build.log 2>/dev/null | tail -50 >> /tmp/diag/failed.txt || true
+          set +e
+          mkdir -p ci-report
+          echo "run=${{ github.run_number }} build=${{ steps.build.outcome }}" > ci-report/meta.txt
+          cp output/.config ci-report/config-full.txt 2>/dev/null
+          ls -la output/images > ci-report/images.txt 2>/dev/null
+          wc -l /tmp/buildroot-build.log > ci-report/log-lines.txt 2>/dev/null
 
-      - name: 上传诊断日志
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: iso-build-logs
-          path: /tmp/diag/
-          if-no-files-found: warn
+          # 完整日志（可能很大，取最后 3000 行）
+          tail -3000 /tmp/buildroot-build.log > ci-report/build-tail.txt 2>/dev/null
+
+          # 提炼错误
+          grep -nE "error:|Error |ERROR|No rule to make|failed|FAILED" \
+            /tmp/buildroot-build.log 2>/dev/null | tail -200 > ci-report/errors.txt
+
+          echo "=== 错误行数: $(wc -l < ci-report/errors.txt 2>/dev/null) ==="
+
+          cd ci-report
+          rm -rf .git
+          git init -q
+          git checkout -q -b ci-logs
+          git config user.email "ci@shuios.local"
+          git config user.name "shuios-ci"
+          git add -A
+          git commit -q -m "构建诊断 #${{ github.run_number }}" || true
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git" ci-logs
