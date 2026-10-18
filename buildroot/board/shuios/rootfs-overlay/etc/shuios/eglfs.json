@@ -1,0 +1,11 @@
+{
+  "device": "/dev/dri/card0",
+  "hwcursor": false,
+  "pbuffers": true,
+  "outputs": [
+    { "name": "HDMI1", "mode": "1920x1080" },
+    { "name": "HDMI2", "mode": "1920x1080" },
+    { "name": "DP1",   "mode": "1920x1080" },
+    { "name": "DP2",   "mode": "1920x1080" }
+  ]
+}

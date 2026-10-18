@@ -17,7 +17,6 @@ endif()
 add_compile_options(-Wall -Wextra -Wno-unused-parameter)
 
 # ── Qt6 依赖 ──────────────────────────────────────────────
-# WaylandCompositor 是 GPLv3-only，本项目整体采用 GPLv3
 find_package(Qt6 REQUIRED COMPONENTS
     Core
     Gui
@@ -27,8 +26,16 @@ find_package(Qt6 REQUIRED COMPONENTS
     Network
 )
 
-# WaylandCompositor 单独查找，便于给出清晰错误
-find_package(Qt6 REQUIRED COMPONENTS WaylandCompositor)
+# WaylandCompositor 是 GPLv3-only，且在 Buildroot 里标记为 experimental。
+# 设为可选：缺了也能编译，只是暂时无法承载其他应用窗口。
+find_package(Qt6 QUIET COMPONENTS WaylandCompositor)
+if(TARGET Qt6::WaylandCompositor)
+    message(STATUS "WaylandCompositor: 可用 —— shuios 可承载其他 Wayland 客户端")
+    set(SHUIOS_HAS_COMPOSITOR TRUE)
+else()
+    message(STATUS "WaylandCompositor: 不可用 —— 仅渲染自身界面")
+    set(SHUIOS_HAS_COMPOSITOR FALSE)
+endif()
 
 # 版本下限检查。Qt 6.7 由 CI 提供；6.4 起可配置，
 # 但部分 WaylandCompositor QML 类型需要 6.5+，见 README。
@@ -94,8 +101,12 @@ target_link_libraries(shuios PRIVATE
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::Network
-    Qt6::WaylandCompositor
 )
+
+if(SHUIOS_HAS_COMPOSITOR)
+    target_link_libraries(shuios PRIVATE Qt6::WaylandCompositor)
+    target_compile_definitions(shuios PRIVATE SHUIOS_HAS_COMPOSITOR=1)
+endif()
 
 # ── 安装规则 ──────────────────────────────────────────────
 include(GNUInstallDirs)

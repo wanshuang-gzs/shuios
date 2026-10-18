@@ -1,15 +1,15 @@
 config BR2_PACKAGE_SHUIOS
 	bool "shuios (氵系统桌面)"
-	select BR2_PACKAGE_QT6BASE
+	select BR2_PACKAGE_QT6BASE_GUI
 	select BR2_PACKAGE_QT6DECLARATIVE
+	select BR2_PACKAGE_QT6DECLARATIVE_QUICK
 	help
 	  氵系统 shuios —— 为 AI 重新设计的桌面环境。
 
-	  第一版作为全屏客户端运行在 cage（kiosk 合成器）之下，
-	  开机直进，用户看不到中间的合成器层。
+	  通过 eglfs 直接接管 DRM/KMS：内核之上没有登录管理器、
+	  没有桌面环境、没有中间合成器。开机即是氵系统。
 
-	  依赖 Qt6 Base (Gui/Core/Network) 与 Qt6 Declarative (QML/Quick)。
-	  QuickControls2 / Wayland 平台插件等由 defconfig 指定，
-	  避免在此 select 未知符号导致配置失败。
+	  依赖 Qt6 Base (Gui/Network/EGLFS) 与 Qt6 Declarative (QML/Quick)。
+	  Wayland 合成器为可选项（见 BR2_PACKAGE_QT6WAYLAND_COMPOSITOR）。
 
 	  https://github.com/wanshuang-gzs/shuios

@@ -1,7 +1,10 @@
 # ═══════════════════════════════════════════════════════════
 #  氵系统 shuios — Buildroot 配置 (x86_64)
 #
-#  目标: 产出一个可写 U 盘、可引导、开机直进 shuios 的镜像
+#  Buildroot 2025.02 LTS
+#
+#  架构: shuios 通过 eglfs 直接接管 DRM/KMS
+#        没有登录管理器、没有桌面环境、没有中间合成器
 #
 #  用法:
 #    make BR2_EXTERNAL=$(pwd)/buildroot shuios_x86_64_defconfig
@@ -18,21 +21,10 @@ BR2_TOOLCHAIN_BUILDROOT_CXX=y
 
 # ── 系统 ──────────────────────────────────────────────────
 BR2_TARGET_GENERIC_HOSTNAME="shuios"
-BR2_TARGET_GENERIC_ISSUE="氵系统 shuios — AI-native"
+BR2_TARGET_GENERIC_ISSUE="氵系统 shuios"
 BR2_TARGET_GENERIC_ROOT_PASSWD=""
-BR2_TARGET_GENERIC_GETTY_PORT="tty1"
 BR2_SYSTEM_DHCP="eth0"
 BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_EUDEV=y
-
-# ── 文件系统 ──────────────────────────────────────────────
-BR2_TARGET_ROOTFS_EXT2=y
-BR2_TARGET_ROOTFS_EXT2_4=y
-BR2_TARGET_ROOTFS_EXT2_SIZE="1G"
-
-# 混合 ISO：既能刻盘，也能 dd 到 U 盘
-BR2_TARGET_ROOTFS_ISO9660=y
-BR2_TARGET_ROOTFS_ISO9660_HYBRID=y
-BR2_TARGET_ROOTFS_ISO9660_LABEL="SHUIOS"
 
 # ── 内核 ──────────────────────────────────────────────────
 BR2_LINUX_KERNEL=y
@@ -40,47 +32,71 @@ BR2_LINUX_KERNEL_DEFCONFIG="x86_64"
 BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_SHUIOS_PATH)/board/shuios/linux.fragment"
 BR2_LINUX_KERNEL_INSTALL_TARGET=y
 
+# ── 可引导 ISO（同时可 dd 到 U 盘）────────────────────────
+BR2_TARGET_SYSLINUX=y
+BR2_TARGET_SYSLINUX_ISOLINUX=y
+BR2_TARGET_ROOTFS_ISO9660=y
+BR2_TARGET_ROOTFS_ISO9660_ISOLINUX=y
+BR2_TARGET_ROOTFS_ISO9660_HYBRID=y
+# INITRD 默认开：rootfs 装进内存，可读写
+# （权限内核的账本要写 /var/lib/shuios，只读 rootfs 不行）
+BR2_TARGET_ROOTFS_ISO9660_INITRD=y
+
 # ── overlay / 脚本 ────────────────────────────────────────
 BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_SHUIOS_PATH)/board/shuios/rootfs-overlay"
 BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_SHUIOS_PATH)/board/shuios/post-build.sh"
 BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_SHUIOS_PATH)/board/shuios/post-image.sh"
 
-# ── Wayland 图形栈 ────────────────────────────────────────
+# ── Wayland / 图形基础 ────────────────────────────────────
 BR2_PACKAGE_WAYLAND=y
 BR2_PACKAGE_WAYLAND_PROTOCOLS=y
 BR2_PACKAGE_LIBXKBCOMMON=y
 BR2_PACKAGE_LIBDRM=y
 
-# Mesa：Intel 核显走 iris 驱动（N100 属于 Gen12）
+# Mesa：N100 是 Intel Gen12，走 iris 驱动
 BR2_PACKAGE_MESA3D=y
 BR2_PACKAGE_MESA3D_GALLIUM_DRIVER=y
 BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_IRIS=y
 BR2_PACKAGE_MESA3D_OPENGL_EGL=y
 BR2_PACKAGE_MESA3D_OPENGL_ES=y
-BR2_PACKAGE_MESA3D_VULKAN_DRIVER=y
-BR2_PACKAGE_MESA3D_VULKAN_DRIVER_INTEL=y
-
-# kiosk 合成器（第一版的"屏幕接管者"）
-BR2_PACKAGE_CAGE=y
 
 # ── Qt6 ───────────────────────────────────────────────────
-BR2_PACKAGE_QT6BASE=y
+BR2_PACKAGE_QT6=y
+
+# base：GUI + EGLFS（直接 DRM/KMS，这是"身体"的关键）
 BR2_PACKAGE_QT6BASE_GUI=y
-BR2_PACKAGE_QT6BASE_WAYLAND=y
+BR2_PACKAGE_QT6BASE_EGLFS=y
+BR2_PACKAGE_QT6BASE_OPENGL=y
+BR2_PACKAGE_QT6BASE_OPENGL_ES2=y
+BR2_PACKAGE_QT6BASE_FONTCONFIG=y
+BR2_PACKAGE_QT6BASE_HARFBUZZ=y
+BR2_PACKAGE_QT6BASE_PNG=y
 BR2_PACKAGE_QT6BASE_NETWORK=y
+BR2_PACKAGE_QT6BASE_DEFAULT_QPA="eglfs"
+
+# QML / Quick
 BR2_PACKAGE_QT6DECLARATIVE=y
-BR2_PACKAGE_QT6QUICKCONTROLS2=y
+BR2_PACKAGE_QT6DECLARATIVE_QUICK=y
+
+# Wayland 合成器（让其他程序能显示在氵系统里）
+BR2_PACKAGE_QT6WAYLAND=y
+BR2_PACKAGE_QT6WAYLAND_COMPOSITOR=y
+
+# SVG（图标）
 BR2_PACKAGE_QT6SVG=y
+
+# Buildroot 2024+ 的依赖链修复：qt6base 依赖它但 Config.in 没 select
+BR2_PACKAGE_DOUBLE_CONVERSION=y
 
 # ── 字体（中文必需）───────────────────────────────────────
 BR2_PACKAGE_DEJAVU=y
-# 文泉驿正黑：中文字形。Buildroot 若无此包，见 post-build.sh 的兜底
 BR2_PACKAGE_WQY_ZENHEI=y
+BR2_PACKAGE_FONTCONFIG=y
 
 # ── shuios 本体 ───────────────────────────────────────────
 BR2_PACKAGE_SHUIOS=y
 
-# ── 基础工具（调试用，可后期裁掉）─────────────────────────
+# ── 基础工具 ──────────────────────────────────────────────
 BR2_PACKAGE_BUSYBOX=y
 BR2_PACKAGE_BUSYBOX_SHOW_OTHERS=y
 BR2_PACKAGE_HTOP=y

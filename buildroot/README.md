@@ -14,36 +14,36 @@
 **开机流程：**
 
 ```
-BIOS/UEFI → 内核 → init → shuios-session → cage → shuios（全屏）
-                                                      ↑
-                                            用户看到的就是这里
+BIOS/UEFI → 内核 → init → shuios（eglfs 直接画在屏幕上）
 ```
 
 没有登录管理器、没有桌面环境、没有 shell 提示符。
 
 ---
 
-## 为什么用 cage
+## 为什么用 eglfs，不用 cage
 
-**Buildroot 官方没有 `qt6waylandcompositor` 包。**
+前一轮实测发现：**Buildroot 2024.02 的 Qt6 没有 qt6declarative（QML）模块**，
+shuios 是 QML 应用，根本编译不了。
 
-要让 shuios 自己当合成器，得从 Qt 源码手工编译 Qt Wayland 模块。
-这条路在 CI 上单轮要 2–4 小时，而本地无法验证 —— 盲改一次就是四小时。
+改用 **Buildroot 2025.02 LTS** 后确认具备：
 
-所以第一版用 **cage**（Buildroot 官方包里的 kiosk 合成器）：
+| 符号 | 作用 |
+|---|---|
+| `BR2_PACKAGE_QT6DECLARATIVE` + `_QUICK` | QML / Quick |
+| `BR2_PACKAGE_QT6WAYLAND` + `_COMPOSITOR` | Wayland 合成器（实验性） |
+| `BR2_PACKAGE_QT6BASE_EGLFS` | **直接 DRM/KMS 渲染** |
 
-| | 自研合成器 | cage（第一版） |
-|---|---|---|
-| 用户体验 | 全屏进氵系统 | **完全相同** |
-| 可行性 | 需自建 Qt 模块包 | Buildroot 官方支持 |
-| 迭代成本 | 每轮数小时 | 分钟级 |
+`eglfs` 是关键：Qt 直接向内核的 DRM/KMS 提交画面，
+**不需要任何合成器或桌面环境**。屏幕上的第一个画面就是 shuios。
 
-cage 只做一件事：把唯一的客户端铺满整块屏幕。用户感知不到它。
+```
+BIOS → 内核 → init → shuios (eglfs) → 屏幕
+                        ↑
+              shuios 自己就是"身体"
+```
 
-**第二版**再换成自研合成器 —— `package/qt6waylandcompositor/` 的
-配置骨架已经留在树里（默认不启用）。
-
----
+比 cage 方案更贴近设计目标：cage 还隔着一层，eglfs 没有。
 
 ## 本地构建
 
@@ -151,7 +151,7 @@ buildroot/
 | 风险 | 说明 |
 |---|---|
 | **首次构建可能失败** | 配置符号、依赖关系都未经真机验证，第一轮大概率报错 |
-| **中文字体** | `BR2_PACKAGE_WQY_ZENHEI` 若不存在，界面中文会显示方块 |
+| **中文字体** | `BR2_PACKAGE_WQY_ZENHEI` 已确认存在，中文可正常显示 |
 | **Mesa 驱动名** | `iris` 驱动符号可能因 Buildroot 版本而异 |
 | **构建时长** | 全量编译接近 Actions 6 小时上限，可能超时 |
 | **真机未验证** | 镜像能否在 N100 上引导，只有你实测才知道 |

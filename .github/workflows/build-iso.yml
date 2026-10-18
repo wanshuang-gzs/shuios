@@ -35,9 +35,9 @@ jobs:
             wget curl git python3 \
             libncurses-dev libssl-dev libelf-dev ca-certificates
 
-      - name: 获取 Buildroot (2024.02 LTS)
+      - name: 获取 Buildroot (2025.02 LTS)
         run: |
-          git clone --depth 1 --branch 2024.02.x \
+          git clone --depth 1 --branch 2025.02.x \
             https://github.com/buildroot/buildroot.git buildroot-src
 
       - name: 应用配置
@@ -134,12 +134,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: output/dl
-          key: br-dl-2024.02-${{ hashFiles('buildroot/configs/*.defconfig') }}
-          restore-keys: br-dl-2024.02-
+          key: br-dl-2025.02-${{ hashFiles('buildroot/configs/*.defconfig') }}
+          restore-keys: br-dl-2025.02-
 
       - name: 获取 Buildroot
         run: |
-          git clone --depth 1 --branch 2024.02.x \
+          git clone --depth 1 --branch 2025.02.x \
             https://github.com/buildroot/buildroot.git buildroot-src
 
       - name: 配置

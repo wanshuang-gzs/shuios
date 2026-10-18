@@ -2,52 +2,57 @@
 # ═══════════════════════════════════════════════════════════
 #  氵系统 会话启动脚本
 #
-#  职责：准备好 Wayland 运行环境，然后让 cage 全屏拉起 shuios。
+#  shuios 通过 eglfs 直接接管 DRM/KMS —— 它不需要寄居在任何
+#  桌面或合成器之下。屏幕上画出来的第一个东西就是它。
 #
-#  cage 是 kiosk 式 Wayland 合成器 —— 它只做一件事：
-#  把唯一的客户端铺满整块屏幕。没有窗口管理、没有标题栏。
-#
-#  对用户来说，开机后看到的就是 shuios，看不到 cage。
+#  这就是"身体"：内核之上，直接是氵系统。
 # ═══════════════════════════════════════════════════════════
 
-# 等 GPU 驱动就绪（内核 i915 初始化需要一点时间）
-for i in $(seq 1 30); do
+# 等 GPU 驱动就绪（i915 初始化需要一点时间）
+i=0
+while [ $i -lt 40 ]; do
     [ -e /dev/dri/card0 ] && break
     sleep 0.5
+    i=$((i + 1))
 done
 
-if [ ! -e /dev/dri/card0 ]; then
-    echo "[shuios-session] 未找到 /dev/dri/card0 —— 显卡驱动可能没加载"
+if [ -e /dev/dri/card0 ]; then
+    echo "[shuios-session] GPU: /dev/dri/card0 就绪"
+else
+    echo "[shuios-session] 警告: 未找到 /dev/dri/card0"
 fi
 
-# ── Wayland 运行目录 ──────────────────────────────────────
+# ── Qt 平台：eglfs = 直接 DRM/KMS ─────────────────────────
+export QT_QPA_PLATFORM=eglfs
+export QT_QPA_EGLFS_INTEGRATION=eglfs_kms
+export QT_QPA_EGLFS_KMS_CONFIG=/etc/shuios/eglfs.json
+export QT_QPA_EGLFS_HIDECURSOR=1
+export QT_QPA_EGLFS_ALWAYS_SET_MODE=1
+
+# 键盘/鼠标
+export QT_QPA_EGLFS_DISABLE_INPUT=0
 export XDG_RUNTIME_DIR=/run/shuios
 mkdir -p "$XDG_RUNTIME_DIR"
 chmod 0700 "$XDG_RUNTIME_DIR"
 
-# ── Qt 平台 ───────────────────────────────────────────────
-export QT_QPA_PLATFORM=wayland
-export XDG_SESSION_TYPE=wayland
+# 中文字体路径
+export FONTCONFIG_PATH=/etc/fonts
 
-# 软件渲染兜底：若 GPU 不可用，至少还能起来（会很慢）
-# 设 SHUIOS_SOFTWARE=1 可强制启用
+# ── 软件渲染兜底 ──────────────────────────────────────────
+# N100 的 iris 驱动正常时不需要；GPU 不可用时至少能起来
 if [ "$SHUIOS_SOFTWARE" = "1" ] || [ ! -e /dev/dri/card0 ]; then
+    echo "[shuios-session] 使用软件渲染"
     export LIBGL_ALWAYS_SOFTWARE=1
+    export QT_QUICK_BACKEND=software
 fi
 
 # ── 大脑配置 ──────────────────────────────────────────────
-# API Key 从 /etc/shuios/key 读取（首次开机可插 U 盘写入）
 if [ -f /etc/shuios/key ]; then
     SHUIOS_DEEPSEEK_KEY=$(cat /etc/shuios/key)
     export SHUIOS_DEEPSEEK_KEY
+    echo "[shuios-session] 已加载 DeepSeek Key"
 fi
 
 # ── 启动 ──────────────────────────────────────────────────
 echo "[shuios-session] 启动氵系统..."
-
-# cage 的写法在不同版本略有差异，两种都试
-if cage -- /usr/bin/shuios 2>/dev/null; then
-    exit 0
-else
-    exec cage /usr/bin/shuios
-fi
+exec /usr/bin/shuios
