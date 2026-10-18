@@ -1,0 +1,9 @@
+total 555128
+drwxr-xr-x 3 runner runner      4096 Oct 18 03:18 .
+drwxr-xr-x 6 runner runner      4096 Oct 18 03:18 ..
+-rw-r--r-- 1 runner runner  13718528 Oct 18 03:17 bzImage
+-rw-r--r-- 1 runner runner 178713088 Oct 18 03:18 rootfs.cpio
+-rw-r--r-- 1 runner runner 183029760 Oct 18 03:18 rootfs.tar
+-rw-r--r-- 1 runner runner 193986560 Oct 18 03:18 shuios-20261018-x86_64.iso
+drwxr-xr-x 2 runner runner      4096 Oct 18 03:05 syslinux
+-rw-r--r-- 1 runner runner       748 Oct 18 03:18 使用说明.txt
