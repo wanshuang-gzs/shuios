@@ -80,18 +80,29 @@ target_include_directories(shuios PRIVATE
 )
 
 # ── QML 模块 ──────────────────────────────────────────────
-# 注意: QML 源文件放在 qml/ 下，qt_add_qml_module 会自动生成
-# "qrc:/qt/qml/Shuios/..." 路径，与 loadFromModule("Shuios","Main") 对应。
+# 源文件放在 qml/ 子目录，但要让它们在 QML 模块里位于【根】，
+# 否则类型名会变成 "qml/Main"，engine.loadFromModule("Shuios","Main") 找不到。
+# QT_RESOURCE_ALIAS 把每个文件映射到模块根目录。
+set_source_files_properties(qml/Main.qml              PROPERTIES QT_RESOURCE_ALIAS Main.qml)
+set_source_files_properties(qml/ConversationView.qml  PROPERTIES QT_RESOURCE_ALIAS ConversationView.qml)
+set_source_files_properties(qml/PlanConfirmDialog.qml PROPERTIES QT_RESOURCE_ALIAS PlanConfirmDialog.qml)
+set_source_files_properties(qml/Taskbar.qml           PROPERTIES QT_RESOURCE_ALIAS Taskbar.qml)
+set_source_files_properties(qml/components/MessageBubble.qml
+                            PROPERTIES QT_RESOURCE_ALIAS components/MessageBubble.qml)
+set_source_files_properties(qml/components/CapabilityBadge.qml
+                            PROPERTIES QT_RESOURCE_ALIAS components/CapabilityBadge.qml)
+
 qt_add_qml_module(shuios
     URI Shuios
     VERSION 1.0
     QML_FILES
-        qml/main.qml
+        qml/Main.qml
         qml/ConversationView.qml
         qml/PlanConfirmDialog.qml
         qml/Taskbar.qml
         qml/components/MessageBubble.qml
         qml/components/CapabilityBadge.qml
+    RESOURCE_PREFIX /qt/qml
 )
 
 target_link_libraries(shuios PRIVATE

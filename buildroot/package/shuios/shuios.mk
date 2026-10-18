@@ -23,8 +23,14 @@ SHUIOS_DEPENDENCIES = \
 	qt6svg
 
 # 交叉编译时关闭单元测试（测试要在目标架构上跑，不是构建机）
+#
+# QT_HOST_PATH 是交叉编译的必需项：
+# Qt6 的 CMake 脚本要从这里找 moc / rcc / qmlcachegen 等宿主工具。
+# 少了它，configure 阶段会直接报 "Qt6 requires QT_HOST_PATH"。
+# Buildroot 里宿主工具装在 $(HOST_DIR)。
 SHUIOS_CONF_OPTS = \
 	-DSHUIOS_BUILD_TESTS=OFF \
-	-DCMAKE_BUILD_TYPE=Release
+	-DCMAKE_BUILD_TYPE=Release \
+	-DQT_HOST_PATH=$(HOST_DIR)
 
 $(eval $(cmake-package))
