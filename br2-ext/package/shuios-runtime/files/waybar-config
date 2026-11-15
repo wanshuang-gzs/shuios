@@ -1,0 +1,30 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 28,
+  "spacing": 0,
+  "modules-left": ["custom/logo"],
+  "modules-center": [],
+  "modules-right": ["network", "cpu", "memory", "custom/clock"],
+
+  "custom/logo": {
+    "exec": "printf ⊙",
+    "interval": "once",
+    "tooltip": false,
+    "on-click": "/usr/bin/shui-panel --menu"
+  },
+
+  "network": {
+    "interval": 10,
+    "tooltip": false,
+    "format-wifi": "wifi",
+    "format-ethernet": "net",
+    "format-linked": "net",
+    "format-disconnected": "offline"
+  },
+
+  "cpu": { "interval": 5, "tooltip": false, "format": "cpu {}%" },
+  "memory": { "interval": 5, "tooltip": false, "format": "mem {}%" },
+
+  "custom/clock": { "exec": "date '+%m-%d %H:%M'", "interval": 20, "format": "{}", "tooltip": false }
+}

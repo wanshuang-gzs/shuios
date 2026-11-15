@@ -1,0 +1,9 @@
+config BR2_PACKAGE_FCITX5_GTK
+	bool "fcitx5-gtk (GTK3 immodule)"
+	depends on BR2_PACKAGE_FCITX5
+	depends on BR2_PACKAGE_LIBGTK3
+	depends on BR2_PACKAGE_LIBGTK3_WAYLAND
+	help
+	  GTK3 输入法模块（im-fcitx5.so）。shui-browser、shui-store、
+	  shui-panel 都是 GTK3；没有它这些程序里的中文输入要依赖
+	  合成器的 text-input 转发，候选窗定位也更差。

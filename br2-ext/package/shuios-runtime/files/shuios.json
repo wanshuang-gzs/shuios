@@ -1,0 +1,21 @@
+{
+  "socket": "/run/shuios/shuiosd.sock",
+  "default_limits": {
+    "memory_max": "2G",
+    "pids_max": 512,
+    "cpu_weight": 100
+  },
+  "autostart": [],
+  "llm": {
+    "endpoint": "http://127.0.0.1:8080",
+    "model": "local",
+    "timeout_secs": 180,
+    "temperature": 0.2
+  },
+  "agent_log_dir": "/var/log/shuios/agents",
+  "model_dir": "/var/lib/shuios/models",
+  "state_dir": "/var/lib/shuios",
+  "mcp_tools": true,
+  "max_agents": 64,
+  "allow_nested_spawn": false
+}

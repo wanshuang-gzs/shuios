@@ -1,0 +1,31 @@
+[Unit]
+Description=shuios 智能体运行时 (shuiosd)
+Documentation=man:shuiosd(8) https://github.com/shuios/shuios
+After=shuios-storage.service local-fs.target
+Wants=shuios-storage.service
+PartOf=shuios.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/shuiosd --config /etc/shuios/shuios.json --foreground
+Restart=on-failure
+RestartSec=2
+RuntimeDirectory=shuios
+RuntimeDirectoryMode=0750
+# /run/shuios 是 shuiosd 的地盘：控制套接字与 MCP 总线都在里面。
+# preserve 保证 stop/restart 时不会被删掉（别的单元也声明了 shuios 目录时尤其重要）。
+RuntimeDirectoryPreserve=yes
+# 智能体的 cgroup 与日志由 shuiosd 自管；这里只保证整棵进程树被一起回收。
+KillMode=control-group
+OOMPolicy=continue
+# 本地大模型推理需要锁定内存与大量 mmap。
+LimitMEMLOCK=infinity
+LimitNOFILE=1048576
+# 守护进程本身不需要写根文件系统。
+ProtectSystem=strict
+ProtectHome=false
+ReadWritePaths=/run/shuios /var/lib/shuios /var/log/shuios /workspace /tmp
+NoNewPrivileges=no
+
+[Install]
+WantedBy=multi-user.target

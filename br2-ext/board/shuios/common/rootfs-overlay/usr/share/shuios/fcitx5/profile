@@ -1,0 +1,18 @@
+# fcitx5 出厂 profile：默认输入法 = Rime（朙月拼音·简化字），
+# 保留 keyboard-us 以便 Ctrl+Space 切回英文。
+# 用户首次修改后 fcitx5 会写回这里，后续启动不再被出厂文件覆盖。
+[Groups/0]
+Name=Default
+Default Layout=us
+DefaultIM=rime
+
+[Groups/0/Items/0]
+Name=keyboard-us
+Layout=
+
+[Groups/0/Items/1]
+Name=rime
+Layout=
+
+[GroupOrder]
+0=Default

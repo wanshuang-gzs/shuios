@@ -1,0 +1,22 @@
+From: shuios <dev@shuios.local>
+Subject: [PATCH] plugins: ignore CMake's own CMakeFiles directory
+
+Buildroot performs in-source CMake builds, so plugins/ contains CMake's
+own CMakeFiles directory at configure time. The glob below treats every
+directory as an external plugin and then add_subdirectory() fails on it.
+
+Skip CMakeFiles; real plugins (e.g. librime-charcode) are unaffected.
+
+---
+diff -u a/plugins/CMakeLists.txt b/plugins/CMakeLists.txt
+--- a/plugins/CMakeLists.txt
++++ b/plugins/CMakeLists.txt
+@@ -32,7 +32,7 @@
+ else()
+   file(GLOB plugin_files "*")
+   foreach(file ${plugin_files})
+-    if(IS_DIRECTORY ${file})
++    if(IS_DIRECTORY ${file} AND NOT file MATCHES "/CMakeFiles$")
+       message(STATUS "Found plugin: ${file}")
+       set(plugins ${plugins} ${file})
+     endif()

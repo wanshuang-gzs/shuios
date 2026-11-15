@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shuios · 起始页</title>
+<style>
+  :root {
+    --ink: #17203a;
+    --muted: #6b7590;
+    --brand: #3b5bdb;
+    --brand2: #7048e8;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: "Noto Sans CJK SC", "WenQuanYi Zen Hei", system-ui, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(900px 480px at 12% 8%, #9db4ff 0%, transparent 60%),
+      radial-gradient(900px 520px at 88% 18%, #e3a6ff 0%, transparent 62%),
+      linear-gradient(150deg, #7d95ff 0%, #b07cf5 52%, #f0a6d8 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+  .card {
+    width: min(760px, 96vw);
+    padding: 36px 40px 30px;
+    border-radius: 26px;
+    background: rgba(255, 255, 255, .82);
+    box-shadow: 0 24px 70px rgba(24, 32, 64, .28), inset 0 1px 0 rgba(255,255,255,.7);
+    backdrop-filter: blur(18px);
+  }
+  .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .logo {
+    width: 52px; height: 52px; border-radius: 16px;
+    display: grid; place-items: center;
+    font-size: 28px; font-weight: 700; color: #fff;
+    background: linear-gradient(135deg, var(--brand), var(--brand2));
+    box-shadow: 0 8px 20px rgba(59, 91, 219, .35);
+  }
+  .brand h1 { margin: 0; font-size: 24px; letter-spacing: .5px; }
+  .brand p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+  form { display: flex; gap: 10px; margin: 18px 0 26px; }
+  input[type=search] {
+    flex: 1;
+    height: 48px;
+    padding: 0 18px;
+    font-size: 16px;
+    color: var(--ink);
+    background: #fff;
+    border: 1px solid #dbe0ec;
+    border-radius: 14px;
+    outline: none;
+    box-shadow: 0 2px 8px rgba(31, 42, 76, .06);
+  }
+  input[type=search]:focus {
+    border-color: #8fa3ff;
+    box-shadow: 0 0 0 4px rgba(59, 91, 219, .16);
+  }
+  button {
+    height: 48px;
+    padding: 0 22px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, var(--brand), var(--brand2));
+    border: 0;
+    border-radius: 14px;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(59, 91, 219, .28);
+  }
+  button:active { transform: translateY(1px); }
+  .sites {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .site {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px;
+    color: var(--ink);
+    text-decoration: none;
+    background: rgba(255, 255, 255, .72);
+    border: 1px solid rgba(219, 224, 236, .9);
+    border-radius: 16px;
+    transition: background .15s, transform .15s, box-shadow .15s;
+  }
+  .site:hover {
+    background: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(31, 42, 76, .12);
+  }
+  .badge {
+    width: 38px; height: 38px; border-radius: 12px;
+    display: grid; place-items: center;
+    font-size: 16px; font-weight: 700; color: #fff;
+    background: var(--tint, #4c6ef5);
+    flex: 0 0 auto;
+  }
+  .site b { display: block; font-size: 15px; font-weight: 600; }
+  .site small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .tips {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(219, 224, 236, .9);
+    color: var(--muted);
+    font-size: 12.5px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  kbd {
+    padding: 1px 6px;
+    font-family: inherit;
+    font-size: 12px;
+    color: #3d4762;
+    background: #eef1f8;
+    border: 1px solid #d7dcea;
+    border-radius: 6px;
+  }
+  @media (max-width: 560px) {
+    .card { padding: 26px 22px; }
+    .sites { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">
+      <div class="logo">氵</div>
+      <div>
+        <h1>shuios 浏览器</h1>
+        <p>WebKitGTK 引擎 · 地址栏输入网址，或直接搜索</p>
+      </div>
+    </div>
+
+    <form action="https://www.bing.com/search" method="get">
+      <input type="search" name="q" placeholder="搜索网页…" autofocus>
+      <button type="submit">搜索</button>
+    </form>
+
+    <div class="sites">
+      <a class="site" href="https://www.bing.com">
+        <span class="badge" style="--tint:#0a7cff">B</span>
+        <span><b>必应</b><small>bing.com</small></span>
+      </a>
+      <a class="site" href="https://www.baidu.com">
+        <span class="badge" style="--tint:#2b5cff">百</span>
+        <span><b>百度</b><small>baidu.com</small></span>
+      </a>
+      <a class="site" href="https://zh.wikipedia.org">
+        <span class="badge" style="--tint:#54595d">W</span>
+        <span><b>维基百科</b><small>zh.wikipedia.org</small></span>
+      </a>
+      <a class="site" href="https://github.com">
+        <span class="badge" style="--tint:#24292f">G</span>
+        <span><b>GitHub</b><small>github.com</small></span>
+      </a>
+      <a class="site" href="https://www.bilibili.com">
+        <span class="badge" style="--tint:#fb7299">B</span>
+        <span><b>哔哩哔哩</b><small>bilibili.com</small></span>
+      </a>
+      <a class="site" href="https://www.zhihu.com">
+        <span class="badge" style="--tint:#0066ff">知</span>
+        <span><b>知乎</b><small>zhihu.com</small></span>
+      </a>
+    </div>
+
+    <div class="tips">
+      <span><kbd>Ctrl</kbd>+<kbd>L</kbd> 地址栏</span>
+      <span><kbd>Ctrl</kbd>+<kbd>T</kbd> 新标签页</span>
+      <span><kbd>Ctrl</kbd>+<kbd>W</kbd> 关闭标签页</span>
+      <span><kbd>F11</kbd> 全屏</span>
+      <span>下载文件保存在 /workspace/下载</span>
+    </div>
+  </main>
+</body>
+</html>

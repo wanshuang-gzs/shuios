@@ -1,0 +1,8 @@
+config BR2_PACKAGE_FCITX5_RIME
+	bool "fcitx5-rime"
+	depends on BR2_PACKAGE_FCITX5
+	select BR2_PACKAGE_LIBRIME
+	select BR2_PACKAGE_RIME_DATA
+	help
+	  fcitx5 的 Rime 输入法引擎。配合 rime-data（朙月拼音 /
+	  简化字拼音）实现中文输入。

@@ -1,0 +1,16 @@
+[package]
+name = "shui-ctl"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "shui-ctl —— shuios 的非交互式控制 CLI（面向脚本与自动化）"
+
+[[bin]]
+name = "shui-ctl"
+path = "src/main.rs"
+
+[dependencies]
+shuios-proto = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

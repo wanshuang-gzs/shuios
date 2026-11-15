@@ -1,0 +1,64 @@
+/* shuios 顶部菜单栏主题（waybar）—— macOS 风格毛玻璃
+ *
+ * waybar 读静态文件、没法 include，色值只能照 shuios-ui.h 抄一遍；
+ * 改色时两处都要动。玻璃色以 ui.h 的 UI_CSS_*（rgba() 形式）为准。
+ *
+ * 玻璃底 GLASS_BG #F4F6FAB8 / 玻璃描边 GLASS_LINE #FFFFFF66
+ * 玻璃悬停 GLASS_HOVER #FFFFFF59
+ * 玻璃主文字 GLASS_INK #1A1F29 / 次文字 GLASS_INK_DIM #5C6675
+ * 强调 ACCENT #35A7CB
+ */
+
+* {
+	font-family: "WenQuanYi Zen Hei", "DejaVu Sans Mono", sans-serif;
+	font-size: 12px;
+	min-height: 0;
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	text-shadow: none;
+}
+
+/* 菜单栏：半透明白玻璃，blur 由合成器（swayfx effects.conf）负责。
+ * GTK3 CSS 不认 #RRGGBBAA，透明色一律 rgba() */
+window#waybar {
+	background-color: rgba(244,246,250,0.72);
+	color: #1A1F29;
+	border-bottom: 1px solid rgba(255,255,255,0.40);
+}
+
+/* 左侧品牌 ⊙：菜单栏的"苹果 logo"位（点开启动台） */
+#custom-logo {
+	color: #1A1F29;
+	font-size: 14px;
+	font-weight: bold;
+	min-width: 30px;
+	padding: 0 4px;
+	margin: 2px 4px 2px 8px;
+	border-radius: 6px;
+}
+
+#custom-logo:hover {
+	background-color: rgba(255,255,255,0.35);
+}
+
+/* 右侧系统信息：细字深色，hover 亮一档玻璃 */
+#network, #cpu, #memory {
+	color: #5C6675;
+	background-color: transparent;
+	margin: 2px 1px;
+	padding: 0 7px;
+	border-radius: 6px;
+}
+
+#network:hover, #cpu:hover, #memory:hover {
+	color: #1A1F29;
+	background-color: rgba(255,255,255,0.35);
+}
+
+/* 时钟：菜单栏右端唯一加粗项 */
+#custom-clock {
+	color: #1A1F29;
+	font-weight: bold;
+	padding: 0 10px 0 8px;
+}

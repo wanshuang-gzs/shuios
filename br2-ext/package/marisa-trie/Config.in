@@ -1,0 +1,8 @@
+config BR2_PACKAGE_MARISA_TRIE
+	bool "marisa-trie"
+	depends on BR2_INSTALL_LIBSTDCPP
+	help
+	  MARISA 是 Rime / OpenCC 使用的静态字典树（trie）库。
+	  没有它 librime 无法编译词典。
+
+	  https://github.com/s-yata/marisa-trie

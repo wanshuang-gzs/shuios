@@ -1,0 +1,7 @@
+# shuios 出厂 Rime 配置：只启用朙月拼音（简体优先），
+# 避开 rime-data 里依赖 stroke 方案的 pinyin_simp，部署更快、日志更干净。
+patch:
+  schema_list:
+    - schema: luna_pinyin_simp
+    - schema: luna_pinyin
+  menu/page_size: 7

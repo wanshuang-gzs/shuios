@@ -1,0 +1,18 @@
+[package]
+name = "shui-pkg"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "shuios 软件包管理器：从仓库安装应用到可写数据分区"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[lib]
+name = "shui_pkg"
+path = "src/lib.rs"
+
+[[bin]]
+name = "shui-pkg"
+path = "src/main.rs"

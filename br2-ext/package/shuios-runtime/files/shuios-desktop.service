@@ -1,0 +1,36 @@
+[Unit]
+Description=shuios 桌面（sway / Wayland）
+Documentation=https://github.com/shuios/shuios
+After=systemd-user-sessions.service shuios-storage.service seatd.service
+Wants=shuios-storage.service seatd.service
+Conflicts=getty@tty1.service
+Before=getty@tty1.service
+
+[Service]
+Type=simple
+Environment=XDG_RUNTIME_DIR=/run/shuios/compositor
+Environment=XDG_SESSION_TYPE=wayland
+Environment=XDG_SESSION_CLASS=user
+# 只声明自己的子目录：/run/shuios 属于 shuiosd（里面放着控制套接字与 MCP 总线）。
+# 之前这里写 RuntimeDirectory=shuios，于是 restart 本单元时 systemd 会把整个
+# /run/shuios 删掉重建 —— shuiosd 的套接字被连带删掉，shui-ctl / MCP 全部失联
+# （踩过：swaybar 状态栏空白、shui-ctl bar 报 No such file）。
+RuntimeDirectory=shuios/compositor
+RuntimeDirectoryMode=0750
+# 桌面要独占显示，先把开机动画停掉（失败无害）
+ExecStartPre=-/usr/bin/pkill -x shuios-splash
+ExecStart=/usr/libexec/shuios/shuios-session
+# 关机动画必须等合成器退出、释放 DRM master 之后才能画，
+# 否则 weston 还占着扫描缓冲，写 /dev/fb0 不会出现在屏幕上。
+ExecStopPost=/bin/sh -c '/usr/bin/shuios-splash --mode shutdown --duration 2 --quiet; touch /run/shuios/.splash-done'
+Restart=always
+RestartSec=3
+StandardOutput=journal+console
+StandardError=journal+console
+# 整个桌面会话（sway + swaybar + foot + mc）作为一棵进程树一起回收
+KillMode=control-group
+ProtectSystem=strict
+ReadWritePaths=/run/shuios /var/lib/shuios /workspace /tmp /var/log
+
+[Install]
+WantedBy=multi-user.target

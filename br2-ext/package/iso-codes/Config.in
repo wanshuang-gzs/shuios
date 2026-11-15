@@ -1,0 +1,7 @@
+config BR2_PACKAGE_ISO_CODES
+	bool "iso-codes"
+	help
+	  ISO 国家 / 语言 / 货币代码数据。fcitx5 的键盘布局用它的
+	  JSON 数据把布局名翻译成人类可读文字。
+
+	  https://salsa.debian.org/iso-codes-team/iso-codes

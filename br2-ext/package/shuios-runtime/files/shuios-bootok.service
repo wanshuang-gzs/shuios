@@ -1,0 +1,14 @@
+[Unit]
+Description=shuios 标记当前根槽启动成功（A/B 提交）
+Documentation=https://github.com/shuios/shuios
+ConditionPathExists=/boot/efi/EFI/BOOT/grubenv
+After=multi-user.target
+RequiresMountsFor=/boot/efi
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/shuios-update mark-boot-ok
+
+[Install]
+WantedBy=multi-user.target

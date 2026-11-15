@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "comment": "shuios 软件商店的目录。name 是安装后的包名（shui-pkg install <name>）；url 是厂商官方 deb 地址；source 用于已在本地仓库里的包。tools/fetch-store-catalog.sh 负责下载、打包并把这里的元数据写进 index.json。QQ 与 WPS 的官方 CDN 在部分网络下会 404/403（地址取自官网下载页），换网络可重试；百度网盘 Linux 版依赖 GTK2/gtkmm2.4，shuios 镜像里没有这两个库，暂不收录。网易云官方 Linux 版 1.2.1 的登录接口已停用（服务端返回 500），改用维护中的洛雪音乐。",
+  "apps": [
+    {
+      "name": "trae",
+      "title": "Trae CN",
+      "developer": "字节跳动",
+      "categories": ["开发"],
+      "featured": true,
+      "summary": "自带 AI 助手的 IDE，能直接改代码、跑命令",
+      "description": "Trae CN 官方 Linux 版（基于 VS Code 内核的 AI IDE）。内置 AI 对话与自动补全，可以用中文描述需求让它改代码、解释报错、生成测试；支持插件市场、Git、终端，并可从 VS Code 导入设置与快捷键。",
+      "icon": "trae.png",
+      "url": "https://lf-cdn.trae.com.cn/obj/trae-com-cn/pkg/app/releases/stable/2.3.102387/linux/TRAE_CN-linux-x64.deb",
+      "file": "TRAE_CN-linux-x64.deb"
+    },
+    {
+      "name": "wine",
+      "title": "Wine 兼容层",
+      "developer": "WineHQ",
+      "categories": ["系统", "工具"],
+      "featured": true,
+      "summary": "在 shuios 上直接运行 Windows 程序（64 位）",
+      "description": "Wine 11 的 64 位运行时。安装后可双击运行 .exe，或在终端用 wine 启动 Windows 软件；包含 Wine 设置与 Wine 记事本两个桌面入口。不包含 32 位运行库（i386 组件），32 位程序暂不支持。",
+      "icon": "wine.png",
+      "source": "/root/store-repo/wine-11.0.sqfs"
+    },
+    {
+      "name": "qq",
+      "title": "QQ",
+      "developer": "腾讯",
+      "categories": ["社交通讯"],
+      "featured": true,
+      "summary": "聊天、群聊、文件传输与音视频通话",
+      "description": "QQ Linux 版，基于 QQ NT 架构。支持消息同步、群聊、文件传输、截图、音视频通话。登录后可与手机、Windows 端同步消息。",
+      "icon": "qq.png",
+      "url": "https://dldir1v6.qq.com/qqfile/qq/QQNT/Linux/QQ_3.2.18_250626_amd64_01.deb",
+      "file": "QQ_3.2.18_250626_amd64_01.deb"
+    },
+    {
+      "name": "wechat",
+      "title": "微信",
+      "developer": "腾讯",
+      "categories": ["社交通讯"],
+      "featured": true,
+      "summary": "微信 Linux 原生版：聊天、朋友圈、文件传输",
+      "description": "微信官方 Linux 版。支持单聊/群聊、朋友圈、文件传输、图片与视频、小程序。已随镜像预装，也可以从这里重新安装。",
+      "icon": "wechat.png",
+      "source": "/root/shuios/br2-ext/pkgrepo/wechat-4.1.13.26.sqfs"
+    },
+    {
+      "name": "dingtalk",
+      "title": "钉钉",
+      "developer": "阿里巴巴",
+      "categories": ["办公", "社交通讯"],
+      "featured": false,
+      "summary": "企业通讯录、群聊、审批与视频会议",
+      "description": "钉钉 Linux 客户端。支持组织通讯录、单聊群聊、DING、审批、日程、云文档与视频会议，适合办公协作。",
+      "icon": "dingtalk.png",
+      "url": "https://dtapp-pub.dingtalk.com/dingtalk-desktop/xc_dingtalk_update/linux_deb/Release/com.alibabainc.dingtalk_8.3.1.260917001_amd64.deb",
+      "file": "com.alibabainc.dingtalk_8.3.1.260917001_amd64.deb"
+    },
+    {
+      "name": "feishu",
+      "title": "飞书",
+      "developer": "字节跳动",
+      "categories": ["办公", "社交通讯"],
+      "featured": false,
+      "summary": "文档、表格、日历与视频会议一体化",
+      "description": "飞书 Linux 客户端。把即时消息、云文档、多维表格、日历、视频会议放在一起，适合团队协作与远程办公。",
+      "icon": "feishu.png",
+      "url": "https://sf3-cn.feishucdn.com/obj/ee-appcenter/fc38d53a/Feishu-linux_x64-7.72.23.deb",
+      "file": "Feishu-linux_x64-7.72.23.deb"
+    },
+    {
+      "name": "wps-office",
+      "title": "WPS Office",
+      "developer": "金山办公",
+      "categories": ["办公"],
+      "featured": true,
+      "summary": "文字、表格、演示三合一办公套件",
+      "description": "WPS Office Linux 个人版。兼容 docx/xlsx/pptx，提供文字（WPS）、表格（ET）、演示（WPP）和 PDF 阅读，界面与 Windows 版一致。",
+      "icon": "wps-office.png",
+      "url": "https://wps-linux-personal.wpscdn.cn/wps/download/ep/Linux2023/29183/wps-office_12.1.2.29183.AK.preread.sw.Personal_806791_amd64.deb",
+      "file": "wps-office_12.1.2.29183.AK.preread.sw.Personal_806791_amd64.deb"
+    },
+    {
+      "name": "code",
+      "title": "Visual Studio Code",
+      "developer": "Microsoft",
+      "categories": ["开发"],
+      "featured": true,
+      "summary": "轻量但强大的代码编辑器，插件生态丰富",
+      "description": "Visual Studio Code。支持语法高亮、智能补全、调试、Git 与海量扩展，是写代码和改配置的常用工具。",
+      "icon": "code.png",
+      "url": "https://update.code.visualstudio.com/latest/linux-deb-x64/stable",
+      "file": "code-latest-amd64.deb"
+    },
+    {
+      "name": "qqmusic",
+      "title": "QQ音乐",
+      "developer": "腾讯",
+      "categories": ["影音"],
+      "featured": true,
+      "summary": "正版曲库在线播放，登录后与手机同步歌单",
+      "description": "QQ音乐 Linux 官方版 1.1.8。自带正版曲库，可直接搜索、播放与下载，支持登录同步歌单和收藏。相比洛雪音乐不需要另外导入音源。",
+      "icon": "qqmusic.png",
+      "url": "https://c.y.qq.com/cgi-bin/file_redirect.fcg?bid=dldir&file=ecosfile_plink%2Fmusic_clntupate%2Flinux%2Fother%2Fqqmusic_1.1.8_amd64.deb&sign=1-d1ca4d5c5a8369b26af88e881ba3ac544066a899dcaea29778b35c9f648e6fee-68cb7c1c",
+      "file": "qqmusic_1.1.8_amd64.deb"
+    },
+    {
+      "name": "lx-music-desktop",
+      "title": "洛雪音乐",
+      "developer": "洛雪",
+      "categories": ["影音"],
+      "featured": true,
+      "summary": "在线音乐播放器：多平台歌单、无损与歌词",
+      "description": "洛雪音乐助手桌面版。支持网易云、酷狗、酷我、QQ 等平台的歌单与搜索，可选音质、下载、自定义音源与歌词显示。注意：2.x 起不再内置音源，首次使用需要在「设置 → 音源」导入自定义音源才能播放。",
+      "icon": "lx-music-desktop.png",
+      "url": "https://github.com/lyswhut/lx-music-desktop/releases/download/v2.12.6/lx-music-desktop_2.12.6_amd64.deb",
+      "file": "lx-music-desktop_2.12.6_amd64.deb"
+    },
+    {
+      "name": "hmcl",
+      "title": "HMCL",
+      "developer": "HMCL 团队",
+      "categories": ["游戏"],
+      "featured": true,
+      "summary": "Minecraft 启动器：装版本、装模组、一键开服",
+      "description": "HMCL 3.16.4，开源的 Minecraft Java 版启动器。支持自动下载安装各版本游戏、Forge/Fabric/Quilt 模组加载器、整合包导入、模组与资源包管理、微软账号登录。包内已带 Java 21（含 JavaFX），安装后无需另外配置 Java。虚拟机的显卡性能有限，建议把渲染距离和画质调低。",
+      "icon": "hmcl.png",
+      "source": "/root/store-repo/hmcl-3.16.4.sqfs"
+    },
+    {
+      "name": "onlyoffice-desktopeditors",
+      "title": "OnlyOffice",
+      "developer": "ONLYOFFICE",
+      "categories": ["办公"],
+      "featured": true,
+      "summary": "与 Word / Excel / PPT 高兼容的办公套件",
+      "description": "ONLYOFFICE 桌面编辑器 10.0 原生 Linux 版。界面与 Microsoft Office 接近，可直接打开、编辑、另存 docx/xlsx/pptx，内置 PDF 阅读与表单填写，本地离线使用，不需要登录。",
+      "icon": "onlyoffice-desktopeditors.png",
+      "source": "/root/store-repo/onlyoffice-desktopeditors-10.0.0-169.sqfs"
+    }
+  ]
+}

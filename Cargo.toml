@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/shuios-proto",
+    "crates/shui-llm",
+    "crates/shuiosd",
+    "crates/shui",
+    "crates/shui-ctl",
+    "crates/shuios-update",
+    "crates/shuios-splash",
+    "crates/shui-pkg",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+authors = ["shuios project"]
+description = "shuios (氵系统) — an AI-native minimal Linux distribution"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+shuios-proto = { path = "crates/shuios-proto" }
+
+# 体积优先：镜像内的二进制越小越好。
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

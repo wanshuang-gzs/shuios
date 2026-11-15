@@ -1,0 +1,29 @@
+config BR2_PACKAGE_FCITX5
+	bool "fcitx5"
+	depends on BR2_INSTALL_LIBSTDCPP
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	depends on BR2_USE_WCHAR
+	depends on BR2_INIT_SYSTEMD
+	select BR2_PACKAGE_CAIRO
+	select BR2_PACKAGE_EXPAT
+	select BR2_PACKAGE_EXTRA_CMAKE_MODULES
+	select BR2_PACKAGE_GDK_PIXBUF
+	select BR2_PACKAGE_ISO_CODES
+	select BR2_PACKAGE_JSON_FOR_MODERN_CPP
+	select BR2_PACKAGE_LIBGLIB2
+	select BR2_PACKAGE_LIBRSVG
+	select BR2_PACKAGE_LIBXKBCOMMON
+	select BR2_PACKAGE_PANGO
+	select BR2_PACKAGE_UTIL_LINUX_LIBUUID
+	select BR2_PACKAGE_WAYLAND
+	select BR2_PACKAGE_WAYLAND_PROTOCOLS
+	select BR2_PACKAGE_XKEYBOARD_CONFIG
+	select BR2_PACKAGE_ZLIB
+	help
+	  输入法框架。shuios 只用 Wayland 前端 + classic 候选窗，
+	  X11 支持已关闭（系统里没有 X 服务器）。
+
+	  https://fcitx-im.org/
+
+comment "fcitx5 needs a systemd init"
+	depends on !BR2_INIT_SYSTEMD

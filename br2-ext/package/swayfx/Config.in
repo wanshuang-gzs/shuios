@@ -1,0 +1,52 @@
+config BR2_PACKAGE_SWAYFX
+	bool "swayfx（带圆角/阴影/模糊的 sway）"
+	depends on !BR2_PACKAGE_SWAY
+	depends on BR2_PACKAGE_SYSTEMD # sd-bus
+	depends on !BR2_STATIC_LIBS # wlroots
+	depends on BR2_TOOLCHAIN_HAS_THREADS # pango, wlroots
+	depends on BR2_PACKAGE_HAS_LIBEGL
+	depends on BR2_PACKAGE_HAS_LIBGLES
+	depends on BR2_PACKAGE_HAS_UDEV
+	depends on BR2_TOOLCHAIN_HAS_SYNC_4 # json-c, pango
+	depends on BR2_USE_WCHAR # pango
+	depends on BR2_USE_MMU # pango
+	depends on BR2_INSTALL_LIBSTDCPP # pango
+	select BR2_PACKAGE_WLROOTS
+	select BR2_PACKAGE_SCENEFX
+	select BR2_PACKAGE_JSON_C
+	select BR2_PACKAGE_PCRE2
+	select BR2_PACKAGE_CAIRO
+	select BR2_PACKAGE_CAIRO_PNG
+	select BR2_PACKAGE_PANGO
+	select BR2_PACKAGE_XKEYBOARD_CONFIG # runtime
+	help
+	  swayfx = sway + scenefx。除了 sway 的全部功能（i3 键位、i3 IPC、
+	  wlr-layer-shell），额外支持圆角、窗口阴影、背景模糊，
+	  这是"像 macOS/Windows 一样好看"在 Wayland 上唯一现成的路。
+
+	  二进制名仍叫 sway，与上游 sway 互斥（两者都装 /usr/bin/sway）。
+
+	  https://github.com/wlrfx/swayfx
+
+if BR2_PACKAGE_SWAYFX
+
+config BR2_PACKAGE_SWAYFX_SWAYBAR
+	bool "swaybar"
+	select BR2_PACKAGE_DEJAVU
+	help
+	  备用任务栏。shuios 默认用自研 shui-panel，swaybar 只在
+	  shui-panel 起不来时兜底，所以关掉也不影响桌面。
+
+config BR2_PACKAGE_SWAYFX_SWAYBAR_TRAY
+	bool "swaybar tray"
+	depends on BR2_PACKAGE_SWAYFX_SWAYBAR
+	help
+	  系统托盘（需要 sd-bus，systemd 已选）
+
+config BR2_PACKAGE_SWAYFX_SWAYNAG
+	bool "swaynag"
+	help
+	  顶部警告条。sway-config 里的「$mod+Shift+E 退出桌面」
+	  用的就是它；没有它那条键位会静默失败。
+
+endif # BR2_PACKAGE_SWAYFX

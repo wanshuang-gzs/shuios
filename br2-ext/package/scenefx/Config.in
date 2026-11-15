@@ -1,0 +1,10 @@
+config BR2_PACKAGE_SCENEFX
+	bool "scenefx（wlroots 圆角/阴影/模糊库）"
+	depends on BR2_PACKAGE_WLROOTS
+	help
+	  swayfx 的特效后端：在 wlroots scene API 上替换渲染器，
+	  提供圆角（corner radius）、窗口阴影（shadows）、背景模糊（blur）。
+
+	  它不是给普通用户直接用的程序，装它只为让 swayfx 编得出来。
+
+	  https://github.com/wlrfx/scenefx

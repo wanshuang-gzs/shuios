@@ -1,0 +1,35 @@
+From: shuios <dev@shuios.local>
+Subject: [PATCH 1/2] classic-ui: support librsvg older than 2.52
+
+Buildroot 2025.02 ships librsvg 2.50.9, which lacks
+rsvg_handle_get_intrinsic_size_in_pixels(). Fall back to the old
+rsvg_handle_get_dimensions() API.
+
+---
+--- a/src/ui/classic/theme.cpp
++++ b/src/ui/classic/theme.cpp
+@@ -237,6 +237,7 @@
+ }
+ 
+ std::optional<std::pair<int, int>> svgSize(RsvgHandle *svg) {
++#if LIBRSVG_CHECK_VERSION(2, 52, 0)
+     double w = 0;
+     double h = 0;
+     if (rsvg_handle_get_intrinsic_size_in_pixels(svg, &w, &h)) {
+@@ -244,6 +245,16 @@
+         int height = std::max(1, static_cast<int>(std::ceil(h)));
+         return std::make_pair(width, height);
+     }
++#else
++    /* librsvg < 2.52 没有 *_in_pixels；主题 SVG 都带 width/height 属性，
++       用旧 API 取像素尺寸即可（Buildroot 2025.02 带的是 2.50.9）。 */
++    RsvgDimensionData dim;
++    rsvg_handle_get_dimensions(svg, &dim);
++    if (dim.width > 0 && dim.height > 0) {
++        return std::make_pair(static_cast<int>(dim.width),
++                              static_cast<int>(dim.height));
++    }
++#endif
+     return std::nullopt;
+ }
+ 

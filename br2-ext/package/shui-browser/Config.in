@@ -1,0 +1,11 @@
+config BR2_PACKAGE_SHUI_BROWSER
+	bool "shui-browser（WebKitGTK 图形浏览器）"
+	depends on BR2_PACKAGE_WEBKITGTK
+	help
+	  shuios 的图形浏览器：地址栏、前进/后退/刷新、多标签页、
+	  下载到 /workspace/下载、本地起始页。
+
+	  引擎是 WebKitGTK（WebKit2GTK 4.1），支持 JavaScript、CSS
+	  和图片；需要先启用 BR2_PACKAGE_WEBKITGTK。
+
+	  https://github.com/shuios/shuios

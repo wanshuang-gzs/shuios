@@ -1,0 +1,69 @@
+--- a/data/CMakeLists.txt
++++ b/data/CMakeLists.txt
+@@ -13,6 +13,10 @@
+ set(DICT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dictionary)
+ set(DICT_GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR})
+ 
++# 交叉编译支持：词典由 host-opencc（本机编译器）预先生成，target 只负责安装。
++option(OPENCC_USE_PREBUILT_DATA "Install dictionaries produced by a native build" OFF)
++set(OPENCC_PREBUILT_DATA_DIR "" CACHE PATH "Directory containing prebuilt .ocd2 dictionaries")
++
+ set(
+   DICTS_RAW
+   CJK_Compatibility_Ideographs
+@@ -70,12 +74,14 @@
+   endforeach(DICT)
+ endif()
+ 
+-add_custom_target(
+-  Dictionaries
+-  ALL
+-  DEPENDS
+-    ${DICT_TARGETS}
+-)
++if(NOT OPENCC_USE_PREBUILT_DATA)
++  add_custom_target(
++    Dictionaries
++    ALL
++    DEPENDS
++      ${DICT_TARGETS}
++  )
++endif()
+ 
+ set(
+   DICT_TSCharactersExt_GENERATING_INPUT
+@@ -205,7 +211,7 @@
+       ${DICT_${DICT}_INPUT}
+   )
+ 
+-  if(OPENCC_ENABLE_INSTALL AND OPENCC_DICT_FORMAT STREQUAL "ocd2")
++  if(OPENCC_ENABLE_INSTALL AND OPENCC_DICT_FORMAT STREQUAL "ocd2" AND NOT OPENCC_USE_PREBUILT_DATA)
+   install(
+     FILES
+       ${DICT_GENERATED_DIR}/${DICT}.ocd2
+@@ -214,7 +220,7 @@
+   )
+   endif()
+ 
+-  if(OPENCC_ENABLE_INSTALL AND OPENCC_DICT_FORMAT STREQUAL "text")
++  if(OPENCC_ENABLE_INSTALL AND OPENCC_DICT_FORMAT STREQUAL "text" AND NOT OPENCC_USE_PREBUILT_DATA)
+   install(
+     FILES
+       ${DICT_GENERATED_DIR}/${DICT}.txt
+@@ -230,6 +236,16 @@
+   )
+ endforeach(DICT)
+ 
++if(OPENCC_USE_PREBUILT_DATA AND OPENCC_ENABLE_INSTALL)
++  install(
++    DIRECTORY
++      ${OPENCC_PREBUILT_DATA_DIR}/
++    DESTINATION
++      ${DIR_SHARE_OPENCC}
++    FILES_MATCHING PATTERN "*.ocd2"
++  )
++endif()
++
+ if(OPENCC_DICT_FORMAT STREQUAL "ocd")
+   foreach(DICT ${DICTS})
+     add_custom_command(

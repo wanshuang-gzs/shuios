@@ -1,0 +1,13 @@
+config BR2_PACKAGE_SHUI_SETTINGS
+	bool "shui-settings（氵 设置中心）"
+	depends on BR2_PACKAGE_LIBGTK3
+	select BR2_PACKAGE_LIBGTK3_WAYLAND
+	help
+	  shuios 的图形设置中心 MVP：网络页（有线/无线状态、Wi-Fi 扫描、
+	  密码连接、断开）与关于页（系统/内核/内存/运行时间）。
+
+	  后端调用镜像自带的 nmcli（NetworkManager），连接配置以 0600
+	  keyfile 写入数据分区的 system-connections。显示/声音/电源等
+	  页面在后续 P0 迭代补齐。
+
+	  https://github.com/shuios/shuios

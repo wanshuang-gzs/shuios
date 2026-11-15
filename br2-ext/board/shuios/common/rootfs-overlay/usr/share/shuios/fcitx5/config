@@ -1,0 +1,8 @@
+# fcitx5 出厂主配置。
+#
+# ActiveByDefault：新建输入上下文时直接进入输入法（默认 IM = Rime），
+# 否则每个新窗口都从 keyboard-us 开始，用户必须先按 Ctrl+Space 才能打中文。
+# fcitx5 的该项默认值是 false（globalconfig.cpp 未给出显式默认值）。
+# 其余键在首次保存时由 fcitx5 自动补全。
+[Behavior]
+ActiveByDefault=True

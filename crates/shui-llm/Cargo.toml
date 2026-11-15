@@ -1,0 +1,14 @@
+[package]
+name = "shui-llm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "OpenAI 兼容推理客户端（本地回环 + 远程 HTTPS）"
+
+[lib]
+name = "shui_llm"
+path = "src/lib.rs"
+
+[dependencies]
+serde_json = { workspace = true }

@@ -1,0 +1,6 @@
+# 本地推理引擎 llama.cpp
+# 与 llama-cpp.mk 的 LLAMA_CPP_VERSION 对应：v0.7.0
+# 该 tarball 由 Buildroot 从
+#   https://github.com/ggml-org/llama.cpp/archive/v0.7.0/llama.cpp-0.7.0.tar.gz
+# 下载；哈希已在 2026-10-18 实际下载后计算并验证（36.41 MB）。
+sha256  55d67acf3ad2ad747a9bbeb75f9f0e173dbcc0d1753a471038a90c819421c5e1  llama.cpp-v0.7.0.tar.gz

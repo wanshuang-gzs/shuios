@@ -1,0 +1,15 @@
+[Unit]
+Description=shuios 持久化存储准备（数据分区 → /workspace、/var/lib/shuios）
+Documentation=https://github.com/shuios/shuios
+After=local-fs.target
+# NetworkManager 的 state/连接配置在数据分区上，必须先完成绑定
+Before=shuiosd.service NetworkManager.service
+RequiresMountsFor=/data
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/shuios/shuios-storage
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+config BR2_PACKAGE_GTK_LAYER_SHELL
+	bool "gtk-layer-shell"
+	depends on BR2_PACKAGE_LIBGTK3
+	depends on BR2_PACKAGE_LIBGTK3_WAYLAND
+	select BR2_PACKAGE_WAYLAND
+	select BR2_PACKAGE_WAYLAND_PROTOCOLS
+	help
+	  让 GTK3 应用能创建 Wayland layer-shell 表面（面板、桌面图标层、
+	  通知这类"桌面外壳"）。waybar 硬依赖它。
+
+	  https://github.com/wmww/gtk-layer-shell
+
+comment "gtk-layer-shell needs GTK3 with the Wayland backend"
+	depends on !BR2_PACKAGE_LIBGTK3 || !BR2_PACKAGE_LIBGTK3_WAYLAND

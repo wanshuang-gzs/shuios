@@ -1,0 +1,53 @@
+shuios 补丁：virtio-gpu 2D 下强制每帧整屏重绘 + 整屏 damage clip。
+
+背景（2026-10-24 实测，QEMU virtio-gpu + Mesa llvmpipe/kms_swrast）：
+wlroots 0.20 的 damage ring 按 wlr_buffer 指针记账，默认认为「复用的
+swapchain 缓冲里上一帧内容还在」；而软件光栅化 + virtio-gpu 这条路径上
+该假设不成立。同时 DRM 提交会带 FB_DAMAGE_CLIPS，guest 内核据此只把
+「脏矩形」传回 host，host 侧资源其余部分保留旧内容。
+
+两者叠加的效果：画面残缺——顶栏文字只剩几截、窗口内容消失、拖窗留下
+残影和黑块。
+
+修法：每帧同时把
+  * render_data.damage（合成器实际绘制范围）
+  * state->damage / WLR_OUTPUT_STATE_DAMAGE（DRM damage clip，即传回 host
+    的范围）
+扩成整个输出，并把 damage ring 标记为全脏，保证下一个 swapchain 缓冲也
+是完整重绘。
+
+2026-10-28 起改成环境变量开关 SHUIOS_FORCE_FULL_DAMAGE，只由
+shuios-session.sh 在 virtio_gpu 上导出：
+  * bochs VGA 是线性帧缓冲，host 直接读 guest 显存，没有「只传脏矩形」
+    这条路径（实测 8 帧 0 黑块）；
+  * vmwgfx 开 3D 后走正常的 DRM damage；
+  * 而强制整屏在软件渲染下每帧多画 1280x800（15-25ms），是卡顿的来源。
+未设置变量时行为与上游一致。
+
+--- a/types/scene/wlr_scene.c
++++ b/types/scene/wlr_scene.c
+@@ -3290,6 +3290,24 @@
+ 	wlr_damage_ring_rotate_buffer(&scene_output->damage_ring, buffer,
+ 		&render_data.damage);
+ 
++	if (getenv("SHUIOS_FORCE_FULL_DAMAGE") != NULL) {
++		/* shuios: virtio-gpu 2D 下强制整屏重绘，见补丁文件头注释。
++		 *
++		 * 必须同时动两处：
++		 *   1) render_data.damage —— 决定合成器实际绘制多少像素；
++		 *   2) state->damage      —— 决定 DRM 提交时 FB_DAMAGE_CLIPS 有多大，
++		 *                            也就是 virtio-gpu 会往 host 侧传多少像素。
++		 * 只改 1) 会导致「缓冲里画满了、但 host 只收到一小块」，画面上表现为
++		 * 大部分区域停留在旧帧（顶栏文字残缺、窗口内容消失、Dock 缺块）。
++		 */
++		pixman_region32_union_rect(&render_data.damage, &render_data.damage,
++			0, 0, buffer->width, buffer->height);
++		pixman_region32_union_rect(&state->damage, &state->damage,
++			0, 0, buffer->width, buffer->height);
++		state->committed |= WLR_OUTPUT_STATE_DAMAGE;
++		wlr_damage_ring_add_whole(&scene_output->damage_ring);
++	}
++
+ 	struct fx_gles_render_pass *fx_pass = fx_get_render_pass(render_pass);
+ 	bool should_compensate_blur = false;
+ 	if (fx_render_pass_init_offscreen_buffers(render_pass, output)

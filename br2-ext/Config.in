@@ -1,0 +1,26 @@
+menu "shuios"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/shuios-runtime/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/llama-cpp/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/shui-store/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/shui-files/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/shui-settings/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/shui-panel/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/shui-lock/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/shui-browser/Config.in"
+	# 现成的桌面外壳组件（"抄答案"路线）
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/gtk-layer-shell/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/waybar/Config.in"
+	# 合成器：swayfx（= sway + 圆角/阴影/模糊），以及它依赖的 scenefx
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/scenefx/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/swayfx/Config.in"
+	# 中文输入法：fcitx5 + Rime
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/extra-cmake-modules/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/iso-codes/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/marisa-trie/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/opencc/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/librime/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/rime-data/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/fcitx5/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/fcitx5-gtk/Config.in"
+	source "$BR2_EXTERNAL_SHUIOS_PATH/package/fcitx5-rime/Config.in"
+endmenu

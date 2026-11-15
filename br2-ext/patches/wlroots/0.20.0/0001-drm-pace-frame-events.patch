@@ -1,0 +1,116 @@
+From: shuios <dev@shuios.local>
+Subject: [PATCH] backend/drm: pace frame events to the output refresh rate
+
+Drivers without vblank throttling (QEMU bochs) complete page flips
+immediately, so the compositor sends frame events as fast as clients can
+render (measured 176 -> 334 fps, ~300% CPU). Delay the frame event until one
+refresh interval has elapsed since the previous one. Real drivers complete
+flips at vblank, so the extra delay is zero there.
+
+Signed-off-by: shuios <dev@shuios.local>
+---
+--- a/include/backend/drm/drm.h
++++ b/include/backend/drm/drm.h
+@@ -4,6 +4,7 @@
+ #include <stdbool.h>
+ #include <stddef.h>
+ #include <stdint.h>
++#include <time.h>
+ #include <wayland-server-core.h>
+ #include <wayland-util.h>
+ #include <wlr/backend/drm.h>
+@@ -223,6 +224,11 @@
+ 	uint32_t hdr_output_metadata;
+ 
+ 	int32_t refresh;
++
++	/* Paces frame events to the output refresh rate (see
++	 * drm_connector_schedule_frame) */
++	struct wl_event_source *frame_timer;
++	struct timespec last_frame;
+ };
+ 
+ struct wlr_drm_backend *get_drm_backend_from_backend(
+--- a/backend/drm/drm.c
++++ b/backend/drm/drm.c
+@@ -1550,6 +1550,8 @@
+ 	return NULL;
+ }
+ 
++static int drm_connector_frame_timer_handler(void *data);
++
+ static struct wlr_drm_connector *create_drm_connector(struct wlr_drm_backend *drm,
+ 		const drmModeConnector *drm_conn) {
+ 	struct wlr_drm_connector *wlr_conn = calloc(1, sizeof(*wlr_conn));
+@@ -1562,6 +1564,9 @@
+ 	wlr_conn->status = DRM_MODE_DISCONNECTED;
+ 	wlr_conn->id = drm_conn->connector_id;
+ 
++	wlr_conn->frame_timer = wl_event_loop_add_timer(drm->session->event_loop,
++		drm_connector_frame_timer_handler, wlr_conn);
++
+ 	if (!get_drm_connector_props(drm->fd, wlr_conn->id, &wlr_conn->props)) {
+ 		free(wlr_conn);
+ 		return NULL;
+@@ -2006,6 +2011,42 @@
+ 	return 1000000000000LL / mhz;
+ }
+ 
++static int drm_connector_frame_timer_handler(void *data) {
++	struct wlr_drm_connector *conn = data;
++
++	clock_gettime(CLOCK_MONOTONIC, &conn->last_frame);
++	wlr_output_send_frame(&conn->output);
++	return 0;
++}
++
++/* Some drivers (e.g. QEMU's bochs) complete page flips immediately instead of
++ * at vblank, which lets clients render at an unbounded rate. Pace frame events
++ * to the connector refresh rate so these drivers behave like a real display. */
++static void drm_connector_schedule_frame(struct wlr_drm_connector *conn) {
++	if (conn->frame_timer == NULL) {
++		wlr_output_send_frame(&conn->output);
++		return;
++	}
++
++	struct timespec now;
++	clock_gettime(CLOCK_MONOTONIC, &now);
++
++	int64_t elapsed_ns =
++		(now.tv_sec - conn->last_frame.tv_sec) * 1000000000LL +
++		(now.tv_nsec - conn->last_frame.tv_nsec);
++	int refresh = conn->refresh > 0 ? conn->refresh : 60000;
++	int64_t delay_ns = 1000000000000LL / refresh - elapsed_ns;
++
++	if (delay_ns <= 0) {
++		wl_event_source_timer_update(conn->frame_timer, 0);
++		conn->last_frame = now;
++		wlr_output_send_frame(&conn->output);
++	} else {
++		wl_event_source_timer_update(conn->frame_timer,
++			(delay_ns + 999999) / 1000000);
++	}
++}
++
+ static void handle_page_flip(int fd, unsigned seq,
+ 		unsigned tv_sec, unsigned tv_usec, unsigned crtc_id, void *data) {
+ 	struct wlr_drm_page_flip *page_flip = data;
+@@ -2082,7 +2123,7 @@
+ 	wlr_output_send_present(&conn->output, &present_event);
+ 
+ 	if (drm->session->active) {
+-		wlr_output_send_frame(&conn->output);
++		drm_connector_schedule_frame(conn);
+ 	}
+ }
+ 
+@@ -2116,6 +2157,9 @@
+ void destroy_drm_connector(struct wlr_drm_connector *conn) {
+ 	disconnect_drm_connector(conn);
+ 
++	if (conn->frame_timer != NULL) {
++		wl_event_source_remove(conn->frame_timer);
++	}
+ 	wl_list_remove(&conn->link);
+ 	free(conn);
+ }

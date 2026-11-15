@@ -1,0 +1,25 @@
+# shuios 挂载表
+#
+# 根文件系统由内核按 cmdline 的 root=PARTUUID=... 挂成只读 squashfs，
+# 因此这里**不再重复声明 /**（否则 systemd 会尝试重挂载并与内核参数打架）。
+#
+# 可写路径只有三类：
+#   1. tmpfs：/tmp /var/tmp /var/log /root（重启即恢复）
+#   2. 数据分区 /data（持久化，再由 shuios-storage 绑定到 /workspace 等）
+#   3. ESP /boot/efi（A/B 升级要改写 grubenv，必须可写）
+#
+# <device>   <mount>      <type>   <options>                        <dump> <pass>
+proc         /proc        proc     nosuid,nodev,noexec              0      0
+sysfs        /sys         sysfs    nosuid,nodev,noexec              0      0
+devpts       /dev/pts     devpts   gid=5,mode=620,nosuid,noexec     0      0
+tmpfs        /dev/shm     tmpfs    mode=1777,nosuid,nodev           0      0
+tmpfs        /tmp         tmpfs    mode=1777,nosuid,nodev,size=1G    0      0
+tmpfs        /var/tmp     tmpfs    mode=1777,nosuid,nodev,size=512M  0      0
+tmpfs        /var/log     tmpfs    mode=0755,nosuid,nodev,size=256M  0      0
+tmpfs        /root        tmpfs    mode=0700,nosuid,nodev,size=64M   0      0
+
+# 数据分区：工作区与模型的持久化载体
+LABEL=SHUI-DATA  /data   ext4  defaults,noatime,nofail,x-systemd.device-timeout=10s  0  2
+
+# ESP：A/B 升级状态（grubenv）在这里
+PARTUUID=5b1e0a00-0000-4000-8000-0000000000e1  /boot/efi  vfat  rw,umask=0077,nofail,x-systemd.device-timeout=10s  0  0

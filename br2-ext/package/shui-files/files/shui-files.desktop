@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=氵 文件
+Name[en]=shuios Files
+Comment=浏览与管理文件
+Exec=/usr/bin/shui-files
+Icon=system-file-manager
+Terminal=false
+Categories=System;FileManager;
+Keywords=files;folder;文件;文件夹;

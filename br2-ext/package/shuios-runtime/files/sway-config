@@ -1,0 +1,168 @@
+# shuios 桌面配置（sway / wlroots）
+#
+# 为什么从 Weston 换到 sway：
+#   * sway 支持 wlr-layer-shell，自研面板、桌面图标层都能做（Weston 不行）
+#   * 自带 swaybar（任务栏：工作区 / 窗口标题 / 时钟 / 系统托盘）
+#   * i3 风格配置，直接可读可改
+#
+# 设计原则：所有键位都留"给人和给智能体两条路"——人用键位，
+# 智能体用 shui-ctl / MCP 工具。
+
+set $mod Mod4
+set $term foot
+set $menu /usr/libexec/shuios/shuios-launch
+
+# ---- 外观 -------------------------------------------------------------
+# 描边统一 2px（软渲染下 1px 在 800p 上基本看不见；焦点框靠 ACCENT 区分）
+default_border pixel 2
+default_floating_border pixel 2
+# 间距统一 8：窗口之间 8、窗口到屏幕边 8（设计令牌见 docs/06-视觉规范.md）
+gaps inner 8
+gaps outer 8
+smart_gaps on
+# 中文字体优先（文泉驿正黑自带 CJK），DejaVu 兜底西文等宽。
+# 字号 11 与 docs/06 的字号阶梯一致（原来 10 太小）
+font pango:WenQuanYi Zen Hei 11
+
+# 品牌壁纸（由 tools/make-wallpaper.py 生成，跟着镜像一起装）
+# Sonoma 风格亮渐变：毛玻璃面板的模糊效果要靠明亮壁纸透出来才看得见。
+output * bg /usr/share/shuios/wallpaper.png fill #9B7BF0
+output * scale_filter nearest
+
+# ---- 特效（swayfx / scenefx）------------------------------------------
+# 圆角 / 阴影 / 模糊都走 GLES2。具体开多少由 shuios-session.sh 在启动前
+# 写到 /run/shuios/compositor/effects.conf：
+#   * 真实 GPU（i915/iris）→ 满效档：圆角 10 + 阴影 + blur 3 passes
+#   * 软件渲染（QEMU virtio-gpu 无 virgl）→ 轻效档：圆角 6、阴影关、blur 1 pass
+# 这样真机好看、虚拟机也不至于卡成 PPT。
+include /run/shuios/compositor/effects.conf
+
+# 焦点边框用主色 ACCENT #35A7CB，失焦用中性 LINE #292E36——一眼能看出哪个窗口有焦点。
+# 字段顺序：border bg text indicator child_border
+client.focused          #35A7CB #12151A #EEF1F4 #35A7CB #35A7CB
+client.focused_inactive #292E36 #12151A #9AA4AE #292E36 #292E36
+client.unfocused        #292E36 #0A0C0F #6B747D #292E36 #292E36
+client.urgent           #E0574F #E0574F #EEF1F4 #E0574F #E0574F
+client.placeholder      #292E36 #0A0C0F #6B747D #292E36 #292E36
+client.background       #0A0C0F
+
+# ---- 启动项 -----------------------------------------------------------
+# 用 exec 而不是 exec_always：exec_always 在每次 reload 时都会再执行一遍，
+# 结果每 reload 一次就多一整套窗口（踩过：屏幕上叠了 4 个 foot）。
+exec /usr/libexec/shuios/shuios-desktop
+
+# 空闲自动锁屏：监听 /dev/input/event*，默认 10 分钟（/etc/shuios/idle.conf）。
+# 同时看护锁屏进程：锁屏被 kill -9 / 崩溃时把下面的 binding mode 切回 default。
+exec /usr/bin/shui-idle
+
+# ---- 窗口默认形态（Windows：底部任务栏 + 浮动窗口）-----------------------
+# 平铺会把屏幕塞满，壁纸一点都看不到（像 IDE 而不是桌面）。
+#
+# 坐标是给 sway 的 `move position`，但**不是最终落点**：实测 sway 会对浮动窗口
+# 再内缩一个固定的 16px（gaps outer 设 0 也一样），所以下面每条都写「目标 - 16」。
+#   想要 (8, 8)     → 写 (-8, -8)
+# 目标位置按「屏幕 1280x800」算。
+for_window [app_id="shui-store"] floating enable, resize set 900 620, move position 356 -8
+# 文件管理器主窗口：900x620 浮窗（目标落点 190,48），否则被平铺挤到 300px 宽、列被裁。
+for_window [app_id="shui-files"] floating enable, resize set 900 620, move position 174 32
+# 对话框与主窗口同 app_id，会继承上一条被撑成 900x620（V21 踩过）。
+# 按标题单独钉尺寸/位置；删除确认框是 GtkMessageDialog，标题为空。
+for_window [app_id="shui-files" title="^新建文件夹$"] resize set 380 170, move position 440 260
+for_window [app_id="shui-files" title="^重命名$"] resize set 380 170, move position 440 260
+for_window [app_id="shui-files" title="^$"] move position 430 250
+# 设置中心：900x620 浮窗，与文件管理器同一套落点；密码对话框单独钉尺寸。
+for_window [app_id="shui-settings"] floating enable, resize set 900 620, move position 174 32
+for_window [app_id="shui-settings" title="^连接到 Wi-Fi$"] resize set 420 220, move position 430 290
+for_window [app_id="foot"] floating enable, resize set 556 380, move position -8 -8
+for_window [title="(?i)文件 · /workspace"] floating enable, resize set 520 340, move position -8 380
+# 注意：不要写 [class=...] / [window_role=...]。镜像里的 sway 没编 XWayland，
+# 这两个 criteria 词法直接不识别，会导致「Error(s) loading config」——
+# 而 sway 一旦解析失败就**丢弃后面所有规则**（Dock/菜单的 for_window 全失效）。
+
+# 任务栏（shui-panel）是 layer-shell surface：锚定屏幕底部通栏 + exclusive_zone=40，
+# 它不在 sway 的窗口树里，也不需要 for_window 规则——位置/独占区由 layer 协议保证
+# （平铺窗口会自动停在任务栏上方，见 package/shui-panel/src/shui-panel.c）。
+#
+# 开始菜单：独立 toplevel（layer surface 不能弹 xdg_popup），460x520，
+# 钉在任务栏正上方居中。目标落点 x=(1280-460)/2=410，底边离任务栏顶 8 →
+# y=800-40-8-520=232。
+# 这里必须用 absolute：move position 是相对工作区原点，而工作区有过窗口后
+# 原点会变成 (16,16)（outer gaps），同一规则冷启动/用过后落点差 16px；
+# absolute 直接按输出坐标落位，实测固定 410,232。换分辨率照算。
+for_window [app_id="shui-panel-menu"] floating enable, border none, sticky enable, resize set 460 520, move absolute position 410 232
+
+# ---- 基本操作 ---------------------------------------------------------
+# 注意：sway/wlroots 不画标题栏，foot 1.16 也没有客户区标题栏，
+# 所以终端窗口上**没有 × 按钮**——关窗只能靠下面的键位。
+bindsym $mod+Return exec $term
+bindsym $mod+d exec $menu
+bindsym $mod+q kill
+bindsym $mod+Shift+q kill
+bindsym $mod+Shift+c reload
+bindsym $mod+Shift+e exec swaynag -t warning -m 'shuios：要退出桌面吗？' -B '退出' 'swaymsg exit'
+
+# 窗口移动 / 焦点（i3 风格）
+bindsym $mod+Left focus left
+bindsym $mod+Down focus down
+bindsym $mod+Up focus up
+bindsym $mod+Right focus right
+bindsym $mod+Shift+Left move left
+bindsym $mod+Shift+Down move down
+bindsym $mod+Shift+Up move up
+bindsym $mod+Shift+Right move right
+
+# 布局
+bindsym $mod+b splith
+bindsym $mod+v splitv
+bindsym $mod+s layout stacking
+bindsym $mod+w layout tabbed
+# Win+E 对齐 Windows：文件管理器（原来的 layout toggle split 是极低频操作，
+# 让位给文件管理器；需要的用户可用 swaymsg layout toggle split 临时切）
+bindsym $mod+e exec /usr/bin/shui-files
+# Win+I：设置中心（对齐 Windows 11 的 Settings 快捷键）
+bindsym $mod+i exec /usr/bin/shui-settings
+# Win+L：锁屏（对齐 Windows）。锁屏进程启动后会切到下面的 "shui-lock"
+# binding mode，默认模式的快捷键在锁屏期间全部失效。
+bindsym $mod+l exec /usr/bin/shui-lock
+bindsym $mod+f fullscreen toggle
+bindsym $mod+Shift+space floating toggle
+bindsym $mod+space focus mode_toggle
+
+# ---- 工作区 -----------------------------------------------------------
+set $ws1 "1"
+set $ws2 "2"
+set $ws3 "3"
+set $ws4 "4"
+set $ws5 "5"
+bindsym $mod+1 workspace $ws1
+bindsym $mod+2 workspace $ws2
+bindsym $mod+3 workspace $ws3
+bindsym $mod+4 workspace $ws4
+bindsym $mod+5 workspace $ws5
+bindsym $mod+Shift+1 move container to workspace $ws1
+bindsym $mod+Shift+2 move container to workspace $ws2
+bindsym $mod+Shift+3 move container to workspace $ws3
+bindsym $mod+Shift+4 move container to workspace $ws4
+bindsym $mod+Shift+5 move container to workspace $ws5
+
+# ---- 音量 / 亮度（无硬件时静默失败）----------------------------------
+bindsym XF86AudioRaiseVolume exec amixer set Master 5%+ 2>/dev/null
+bindsym XF86AudioLowerVolume exec amixer set Master 5%- 2>/dev/null
+bindsym XF86AudioMute exec amixer set Master toggle 2>/dev/null
+
+# ---- 任务栏 --------------------------------------------------------------
+# 底部 40px 通栏任务栏由 shui-panel 以 layer-shell（layer=TOP + exclusive_zone=40）
+# 提供：开始按钮、固定/运行中应用按钮、AI 状态、时钟。没有顶栏——原来的
+# waybar 菜单栏已从会话里拿掉（docs/07-界面规划.md：Windows 形态只有底栏）。
+# 开始菜单的定位规则写在上面「窗口默认形态」一节，这里不重复写。
+
+# ---- 锁屏 binding mode ----------------------------------------------------
+# 锁屏进程（shui-lock）启动后执行 `swaymsg mode shui-lock`。sway 只激活
+# 当前 mode 内的绑定，所以默认模式的 Win+Return / Win+E / 工作区切换在
+# 锁屏期间全部失效——按键只会送到全屏锁屏窗口。解锁时切回 default；
+# shui-idle 会在锁屏进程异常消失时兜底恢复 default。
+#
+# 这里故意不绑定解锁键：解锁只能由锁屏窗口校验密码后完成。
+mode "shui-lock" {
+	bindsym Mod4+Shift+F12 nop
+}

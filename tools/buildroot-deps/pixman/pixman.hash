@@ -1,0 +1,5 @@
+# pixman 0.46.4（替换内置 0.44.2；wlroots 0.20 要求 >= 0.46.0）
+sha256  a098c33924754ad43f981b740f6d576c70f9ed1006e12221b1845431ebce1239  pixman-0.46.4.tar.xz
+
+# Locally computed
+sha256  fac9270f0987b96ff4533fca3548c633e02083cbba4a0172a3b149b2e4019793  COPYING

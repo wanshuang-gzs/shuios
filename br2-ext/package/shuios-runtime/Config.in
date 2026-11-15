@@ -1,0 +1,31 @@
+config BR2_PACKAGE_SHUIOS_RUNTIME
+	bool "shuios 智能体运行时 (shuiosd + shui + shui-ctl)"
+	depends on BR2_INIT_SYSTEMD
+	depends on BR2_TOOLCHAIN_USES_GLIBC
+	help
+	  氵系统 的核心用户态组件：
+
+	    shuiosd   智能体运行时守护进程（cgroup v2 资源隔离、生命周期、
+	              日志、内置 MCP 工具、本地模型仓库索引）
+	    shui      AI 原生 shell（自然语言 + 系统工具调用）
+	    shui-ctl  面向脚本与自动化的控制 CLI
+
+	  二进制不在镜像构建里编译，而是由 tools/build-rust.sh 在构建主机上
+	  原生编译后放进 br2-ext/artifacts/，本包负责安装与打包。
+
+	  这样做的原因：shuios 的目标架构 x86_64 与构建主机一致，原生编译比
+	  在 Buildroot 里再拉一套 Rust 交叉工具链更快、更可复现。代价是交叉
+	  到 aarch64 时需要改这条流水线（见 docs/04-路线图.md）。
+
+	  glibc 兼容性说明：构建主机（如 Ubuntu 24.04，glibc 2.39）产出的二进制
+	  可以运行在目标镜像（Buildroot 2025.02 自带更新的 glibc）上；
+	  glibc 只保证向后兼容，反向不保证。
+
+	  注意：构建前必须先执行 ./tools/build-rust.sh，
+	  否则 shuios-runtime 会在安装阶段明确报错并中止。
+
+comment "shuios-runtime 需要 systemd 作为 init"
+	depends on !BR2_INIT_SYSTEMD
+
+comment "shuios-runtime 需要 glibc 工具链"
+	depends on BR2_INIT_SYSTEMD && !BR2_TOOLCHAIN_USES_GLIBC

@@ -1,0 +1,60 @@
+From: shuios <dev@shuios.local>
+Subject: [PATCH 4/4] cmake: make exported target include dirs relocatable
+
+fcitx5 exports INTERFACE_INCLUDE_DIRECTORIES with CMAKE_INSTALL_FULL_INCLUDEDIR,
+i.e. /usr/include/... CMake rejects such imported targets during a cross
+build because the directory does not exist on the build machine.
+
+Use the relative CMAKE_INSTALL_INCLUDEDIR for the exported targets and
+re-anchor the module header dir at the config file's install prefix.
+
+---
+--- a/src/lib/fcitx/CMakeLists.txt
++++ b/src/lib/fcitx/CMakeLists.txt
+@@ -87,7 +87,7 @@
+ target_include_directories(Fcitx5Core PUBLIC
+     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/..>
+-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}/Fcitx5/Core>)
++    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Fcitx5/Core>)
+ target_link_libraries(Fcitx5Core PUBLIC Fcitx5::Config Fcitx5::Utils PRIVATE LibIntl::LibIntl)
+ if (ENABLE_KEYBOARD)
+     target_link_libraries(Fcitx5Core PRIVATE XKBCommon::XKBCommon)
+--- a/src/lib/fcitx-config/CMakeLists.txt
++++ b/src/lib/fcitx-config/CMakeLists.txt
+@@ -42,7 +42,7 @@
+ target_include_directories(Fcitx5Config PUBLIC
+     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/..>
+-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}/Fcitx5/Config>)
++    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Fcitx5/Config>)
+ target_link_libraries(Fcitx5Config PUBLIC Fcitx5::Utils)
+ 
+ configure_file(Fcitx5Config.pc.in ${CMAKE_CURRENT_BINARY_DIR}/Fcitx5Config.pc @ONLY)
+--- a/src/lib/fcitx-utils/CMakeLists.txt
++++ b/src/lib/fcitx-utils/CMakeLists.txt
+@@ -157,7 +157,7 @@
+ target_include_directories(Fcitx5Utils PUBLIC
+     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/..>
+-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}/Fcitx5/Utils>)
++    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Fcitx5/Utils>)
+ target_link_libraries(Fcitx5Utils PRIVATE LibIntl::LibIntl Pthread::Pthread)
+ if(LIBKVM_FOUND)
+     target_link_libraries(Fcitx5Utils PRIVATE LibKVM::LibKVM)
+--- a/src/lib/fcitx-utils/Fcitx5ModuleTemplate.cmake.in
++++ b/src/lib/fcitx-utils/Fcitx5ModuleTemplate.cmake.in
+@@ -4,4 +4,12 @@
+ 
+ add_library(@FEM_TARGET@-interface INTERFACE)
+ add_library(Fcitx5::Module::@FEM_EXPORTNAME@ ALIAS @FEM_TARGET@-interface)
+-set_target_properties(@FEM_TARGET@-interface PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "@_MODULE_HEADER_DIR@")
++# 安装前缀在交叉编译时是目标机路径（/usr），构建机上不存在；按本文件
++# 位置（<prefix>/lib/cmake/Fcitx5ModuleXxx/）推出前缀，目录才可重定位。
++get_filename_component(_FCITX_MODULE_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
++set(_FCITX_MODULE_HEADER_DIR "@_MODULE_HEADER_DIR@")
++if (_FCITX_MODULE_HEADER_DIR MATCHES "^/usr/")
++    string(REGEX REPLACE "^/usr/" "" _FCITX_MODULE_HEADER_DIR "${_FCITX_MODULE_HEADER_DIR}")
++    set(_FCITX_MODULE_HEADER_DIR "${_FCITX_MODULE_PREFIX}/${_FCITX_MODULE_HEADER_DIR}")
++endif()
++set_target_properties(@FEM_TARGET@-interface PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${_FCITX_MODULE_HEADER_DIR}")

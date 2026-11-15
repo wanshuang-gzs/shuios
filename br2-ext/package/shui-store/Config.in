@@ -1,0 +1,11 @@
+config BR2_PACKAGE_SHUI_STORE
+	bool "shui-store（氵 软件商店）"
+	depends on BR2_PACKAGE_LIBGTK3
+	select BR2_PACKAGE_LIBGTK3_WAYLAND
+	help
+	  shuios 的图形软件商店：列出 /usr/share/shuios/pkgrepo 里的软件包，
+	  点一下就调用 shui-pkg 安装/卸载。
+
+	  图标由 Cairo 现画，不依赖图标主题或图片资源。
+
+	  https://github.com/shuios/shuios

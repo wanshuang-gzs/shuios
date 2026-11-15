@@ -1,0 +1,8 @@
+config BR2_PACKAGE_RIME_DATA
+	bool "rime-data (朙月拼音 / 简化字拼音)"
+	help
+	  Rime 共享数据：default.yaml、symbols/punctuation、essay 词频、
+	  朙月拼音（luna_pinyin）与简化字拼音（pinyin_simp）方案。
+
+	  数据来自 rime-prelude / rime-essay / rime-luna-pinyin /
+	  rime-pinyin-simp 的钉住提交，装到 /usr/share/rime-data。

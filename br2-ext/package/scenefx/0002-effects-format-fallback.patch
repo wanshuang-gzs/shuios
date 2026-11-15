@@ -1,0 +1,131 @@
+shuios 补丁：特效 framebuffer 的格式/分配回退（VMware vmwgfx）。
+
+背景（2026-10-28 实测，VMware Workstation + mks.enable3d=TRUE + mesa 24）：
+开启 3D 后 EGL/GLES2 初始化成功，但 scenefx 每帧都报
+  fx_framebuffer.c:98 Failed to get a supported texture format while allocating buffer
+  fx_pass.c:92 Failed to create effect framebuffers
+桌面因此渲染不出来。
+
+第一个原因：fx_framebuffer_get_or_create_custom() 只尝试
+get_fx_format_from_gl(GL_RGBA, GL_UNSIGNED_BYTE, true/false) 查出来的
+ABGR8888 / XBGR8888。vmwgfx（SVGA3D）的纹理格式集里是 BGRA 字节序的
+ARGB8888 / XRGB8888，所以查不到；失败后整条渲染 pass 被放弃。
+
+第二个原因（改掉第一个之后暴露）：查到了 ABGR8888 也不代表能分配。
+vmwgfx 对“可导入”和“可分配”报的格式集不一致，gbm_bo_create 直接失败：
+  render/allocator/gbm.c:89 gbm_bo_create failed: Success
+  fx_framebuffer.c:147 Failed to allocate wlr_buffer
+
+修法：把候选格式（首选 → ARGB8888 → XBGR8888 → XRGB8888）逐个真正
+分配一次，第一个成功的才用。特效缓冲是 EGLImage 渲染目标，字节序由
+EGL 按格式解释，退到 BGRA 顺序不会改变采样结果。若全部失败，额外把
+驱动实际支持的格式列表打印一次（而不是每帧刷屏）。
+
+--- a/render/fx_renderer/fx_framebuffer.c
++++ b/render/fx_renderer/fx_framebuffer.c
+@@ -1,4 +1,6 @@
++#include <stdio.h>
+ #include <stdlib.h>
++#include <drm_fourcc.h>
+ #include <wlr/interfaces/wlr_buffer.h>
+ #include <wlr/render/allocator.h>
+ #include <wlr/render/interface.h>
+@@ -91,30 +93,82 @@
+ 	// Get the best supported DRM format (DMABUF if supported)
+ 	const struct wlr_drm_format_set *texture_formats = wlr_renderer_get_texture_formats(
+ 			&renderer->wlr_renderer, renderer->wlr_renderer.render_buffer_caps);
+-	const struct fx_pixel_format *pix_format =
+-		get_fx_format_from_gl(GL_RGBA, GL_UNSIGNED_BYTE, has_alpha);
+-	const struct wlr_drm_format *format = wlr_drm_format_set_get(texture_formats, pix_format->drm_format);
+-	if (format == NULL) {
+-		wlr_log(WLR_ERROR, "Failed to get a supported texture format while allocating buffer");
++	if (texture_formats == NULL) {
++		wlr_log(WLR_ERROR, "No texture formats available");
+ 		*failed = true;
+ 		return;
+ 	}
+ 
+-	struct wlr_buffer *wlr_buffer = wlr_allocator_create_buffer(allocator, width, height, format);
+-	if (wlr_buffer == NULL) {
+-		wlr_log(WLR_ERROR, "Failed to allocate wlr_buffer");
+-		*failed = true;
+-		return;
++	/* shuios: 首选 get_fx_format_from_gl() 给出的格式（GL_RGBA→ABGR8888、
++	 * 无 alpha→XBGR8888），但个别驱动（vmwgfx）对“可导入”和“可分配”的
++	 * 格式集不一致：EGL 说 ABGR8888 可以导入，GBM 却建不出 BO。所以这里
++	 * 把候选格式逐个真正分配一次，第一个成功的才用；颜色字节序由 EGL
++	 * 按格式解释，退到 BGRA 顺序不会改变采样结果。 */
++	const struct fx_pixel_format *pix_format =
++		get_fx_format_from_gl(GL_RGBA, GL_UNSIGNED_BYTE, has_alpha);
++	static const uint32_t extra_formats[] = {
++		DRM_FORMAT_ARGB8888,
++		DRM_FORMAT_XBGR8888,
++		DRM_FORMAT_XRGB8888,
++	};
++	uint32_t candidates[1 + sizeof(extra_formats) / sizeof(extra_formats[0])];
++	size_t candidate_count = 0;
++	if (pix_format != NULL) {
++		candidates[candidate_count++] = pix_format->drm_format;
++	}
++	for (size_t i = 0; i < sizeof(extra_formats) / sizeof(extra_formats[0]); i++) {
++		bool duplicate = false;
++		for (size_t j = 0; j < candidate_count; j++) {
++			if (candidates[j] == extra_formats[i]) {
++				duplicate = true;
++				break;
++			}
++		}
++		if (!duplicate) {
++			candidates[candidate_count++] = extra_formats[i];
++		}
+ 	}
+ 
+-	*fx_framebuffer = fx_framebuffer_get_or_create(renderer, wlr_buffer);
+-	if (*fx_framebuffer == NULL) {
+-		wlr_log(WLR_ERROR, "Failed to allocate fx_buffer");
+-		wlr_buffer_drop(wlr_buffer);
+-		*failed = true;
++	for (size_t i = 0; i < candidate_count; i++) {
++		const struct wlr_drm_format *format =
++			wlr_drm_format_set_get(texture_formats, candidates[i]);
++		if (format == NULL) {
++			continue;
++		}
++		struct wlr_buffer *wlr_buffer =
++			wlr_allocator_create_buffer(allocator, width, height, format);
++		if (wlr_buffer == NULL) {
++			continue;
++		}
++		struct fx_framebuffer *fx_buffer =
++			fx_framebuffer_get_or_create(renderer, wlr_buffer);
++		if (fx_buffer == NULL) {
++			wlr_buffer_drop(wlr_buffer);
++			continue;
++		}
++		if (i > 0) {
++			wlr_log(WLR_INFO, "Effect buffer: alpha=%d using fallback format 0x%08x",
++					has_alpha, format->format);
++		}
++		*fx_framebuffer = fx_buffer;
++		fx_framebuffer_get_fbo(*fx_framebuffer);
+ 		return;
+ 	}
+-	fx_framebuffer_get_fbo(*fx_framebuffer);
++
++	static bool logged_formats = false;
++	if (!logged_formats) {
++		logged_formats = true;
++		char list[512] = {0};
++		size_t off = 0;
++		for (size_t i = 0; i < texture_formats->len && off + 16 < sizeof(list); i++) {
++			off += snprintf(&list[off], sizeof(list) - off, "0x%08x ",
++					texture_formats->formats[i].format);
++		}
++		wlr_log(WLR_ERROR, "Effect buffers: no allocatable format. Renderer formats: %s", list);
++	}
++	wlr_log(WLR_ERROR, "Failed to allocate effects buffer %dx%d alpha=%d",
++			width, height, has_alpha);
++	*failed = true;
+ }
+ 
+ struct fx_framebuffer *fx_framebuffer_get_or_create(struct fx_renderer *renderer,

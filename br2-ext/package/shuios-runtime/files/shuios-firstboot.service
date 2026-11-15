@@ -1,0 +1,16 @@
+[Unit]
+Description=shuios 首次启动初始化
+Documentation=https://github.com/shuios/shuios
+ConditionPathExists=!/var/lib/shuios/.firstboot-done
+After=shuios-storage.service
+Before=shuiosd.service
+Wants=shuios-storage.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/shuios/shuios-firstboot
+StandardOutput=journal+console
+
+[Install]
+WantedBy=multi-user.target

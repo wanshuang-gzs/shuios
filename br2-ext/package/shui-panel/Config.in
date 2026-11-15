@@ -1,0 +1,11 @@
+config BR2_PACKAGE_SHUI_PANEL
+	bool "shui-panel（Windows 风格底部任务栏）"
+	depends on BR2_PACKAGE_LIBGTK3
+	select BR2_PACKAGE_LIBGTK3_WAYLAND
+	help
+	  shuios 的底部任务栏：左侧「氵」开始按钮与常用应用图标，
+	  右侧内存状态与时钟。图标由 Cairo 现画，运行中的程序下面有主色短线。
+
+	  它是个无边框浮动窗口，由 sway 的 for_window 规则钉在屏幕底部。
+
+	  https://github.com/shuios/shuios

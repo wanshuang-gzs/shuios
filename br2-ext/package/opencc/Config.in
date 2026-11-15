@@ -1,0 +1,9 @@
+config BR2_PACKAGE_OPENCC
+	bool "OpenCC"
+	depends on BR2_INSTALL_LIBSTDCPP
+	select BR2_PACKAGE_MARISA_TRIE
+	help
+	  Open Chinese Convert：简繁转换库。librime 的 simplifier
+	  过滤器（拼音出简体字）依赖它，librime 强制要求 OpenCC。
+
+	  https://github.com/BYVoid/OpenCC

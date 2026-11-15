@@ -1,0 +1,8 @@
+# GTK3 输入法模块缓存（手写，Buildroot 不生成 immodules.cache）。
+# 格式：模块路径一行，随后每个 context 一行（5 个引号字段），空行结束该模块。
+# 由 shuios-session 通过 GTK_IM_MODULE_FILE 指向本文件。
+# 模块路径必须与 fcitx5-gtk 的安装位置一致（GTK3_BINARY_VERSION=3.0.0）。
+"/usr/lib/gtk-3.0/3.0.0/immodules/im-fcitx5.so"
+"fcitx" "Fcitx5 (Flexible Input Method Framework5)" "fcitx5" "/usr/share/locale" "ja:ko:zh:*"
+"fcitx5" "Fcitx5 (Flexible Input Method Framework5)" "fcitx5" "/usr/share/locale" "ja:ko:zh:*"
+

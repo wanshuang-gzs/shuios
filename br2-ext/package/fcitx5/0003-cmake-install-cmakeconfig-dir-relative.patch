@@ -1,0 +1,29 @@
+From: shuios <dev@shuios.local>
+Subject: [PATCH] cmake: resolve FCITX_INSTALL_CMAKECONFIG_DIR relative to the config file
+
+Fcitx5UtilsConfig.cmake bakes in the *target* install path
+(/usr/lib/cmake) at build time. Addons such as fcitx5-rime and
+fcitx5-gtk then include
+${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5CompilerSettings.cmake,
+which does not exist during a cross build where Fcitx5 lives in the
+staging sysroot.
+
+Derive the directory from the config file's own location instead. This
+is correct for both native and cross builds.
+
+---
+diff -u a/src/lib/fcitx-utils/Fcitx5UtilsConfig.cmake.in b/src/lib/fcitx-utils/Fcitx5UtilsConfig.cmake.in
+--- a/src/lib/fcitx-utils/Fcitx5UtilsConfig.cmake.in
++++ b/src/lib/fcitx-utils/Fcitx5UtilsConfig.cmake.in
+@@ -4,7 +4,10 @@
+ include("${CMAKE_CURRENT_LIST_DIR}/Fcitx5Macros.cmake")
+ 
+ set(FCITX_SYS_INSTALL_PREFIX "@FCITX_INSTALL_PREFIX@")
+-set(FCITX_INSTALL_CMAKECONFIG_DIR "@FCITX_INSTALL_CMAKECONFIG_DIR@")
++get_filename_component(FCITX_INSTALL_CMAKECONFIG_DIR
++    "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
++# 交叉编译时上面的路径是目标机路径（/usr/lib/cmake），构建机看不到；
++# 按配置文件位置推回 cmake 目录，原生/交叉都正确。
+ 
+ set(_default_FCITX_INSTALL_USE_FCITX_SYS_PATHS Off)
+ if (NOT DEFINED FCITX_INSTALL_USE_FCITX_SYS_PATHS)

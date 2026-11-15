@@ -1,0 +1,20 @@
+[Unit]
+Description=shuios 软件包恢复（按 installed.json 重新挂载已装软件）
+Documentation=https://github.com/shuios/shuios
+# 必须等数据分区挂好：包文件与清单都在 /var/lib/shuios/pkg 下面
+After=shuios-storage.service
+Wants=shuios-storage.service
+Before=shuios-desktop.service
+# 只跑一次，失败也只记日志——装不上的软件不该拖住开机
+ConditionPathExists=/var/lib/shuios/pkg/installed.json
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/shui-pkg restore
+StandardOutput=journal+console
+StandardError=journal+console
+TimeoutStartSec=30
+
+[Install]
+WantedBy=multi-user.target

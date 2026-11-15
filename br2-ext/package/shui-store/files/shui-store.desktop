@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=氵 软件商店
+Name[en]=shuios Store
+Comment=安装与管理软件
+Exec=/usr/bin/shui-store
+Icon=system-software-install
+Terminal=false
+Categories=System;Settings;
+Keywords=store;install;package;软件;安装;

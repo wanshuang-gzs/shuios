@@ -1,0 +1,18 @@
+[Unit]
+Description=shuios 开机动画
+Documentation=https://github.com/shuios/shuios
+DefaultDependencies=no
+After=systemd-vconsole-setup.service systemd-udev-trigger.service
+Before=shuios-desktop.service sysinit.target
+Conflicts=shuios-splash-shutdown.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/shuios-splash --mode boot --duration 12 --quiet
+# 桌面起来时由 shuios-desktop 的 ExecStartPre 把它杀掉，不用等满 12 秒
+Restart=no
+KillSignal=SIGTERM
+TimeoutStopSec=2
+
+[Install]
+WantedBy=sysinit.target

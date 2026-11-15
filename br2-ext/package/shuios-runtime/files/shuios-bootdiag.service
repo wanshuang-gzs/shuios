@@ -1,0 +1,13 @@
+[Unit]
+Description=shuios 开机自检（把关键状态写到串口）
+Documentation=https://github.com/shuios/shuios
+After=multi-user.target shuiosd.service weston.service seatd.service
+Wants=shuiosd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/shuios/shuios-bootdiag
+
+[Install]
+WantedBy=multi-user.target

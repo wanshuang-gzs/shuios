@@ -1,0 +1,7 @@
+config BR2_PACKAGE_EXTRA_CMAKE_MODULES
+	bool "extra-cmake-modules"
+	help
+	  KDE 的 CMake 模块集，fcitx5 系列包用它提供的
+	  ecm_add_wayland_client_protocol 等模块。
+
+	  只安装到 staging（share/ECM），不会进入目标镜像。

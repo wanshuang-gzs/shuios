@@ -1,0 +1,20 @@
+From: shuios <dev@shuios.local>
+Subject: [PATCH 2/2] frontend: do not build the IBus frontend
+
+shuios has no IBus clients: GTK apps use the fcitx5-gtk immodule over
+D-Bus and Wayland clients use the waylandim frontend. Building
+ibusfrontend also hits a GCC 13.4.0 internal compiler error while
+expanding the coroutine in gnomeappmonitor.cpp.
+
+---
+--- a/src/frontend/CMakeLists.txt
++++ b/src/frontend/CMakeLists.txt
+@@ -13,5 +13,7 @@
+ if (ENABLE_DBUS)
+     add_subdirectory(dbusfrontend)
+     add_subdirectory(fcitx4frontend)
+-    add_subdirectory(ibusfrontend)
++    # shuios：不构建 IBus 前端。系统里没有 IBus 客户端（GTK 走 fcitx5-gtk
++    # immodule，Wayland 原生应用走 waylandim），且它的协程代码会触发
++    # GCC 13.4.0 的 internal compiler error（build_special_member_call）。
+ endif()

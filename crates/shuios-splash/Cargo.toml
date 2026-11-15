@@ -1,0 +1,15 @@
+[package]
+name = "shuios-splash"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "shuios 开机/关机动画：直接写 /dev/fb0 的自研 splash"
+
+[[bin]]
+name = "shuios-splash"
+path = "src/main.rs"
+
+[dependencies]
+shuios-proto = { workspace = true }
+libc = "0.2"

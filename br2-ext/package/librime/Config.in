@@ -1,0 +1,17 @@
+config BR2_PACKAGE_LIBRIME
+	bool "librime"
+	depends on BR2_INSTALL_LIBSTDCPP
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	select BR2_PACKAGE_BOOST
+	select BR2_PACKAGE_BOOST_REGEX
+	select BR2_PACKAGE_GFLAGS
+	select BR2_PACKAGE_GLOG
+	select BR2_PACKAGE_LEVELDB
+	select BR2_PACKAGE_MARISA_TRIE
+	select BR2_PACKAGE_OPENCC
+	select BR2_PACKAGE_YAML_CPP
+	help
+	  Rime 输入法引擎（librime）。fcitx5-rime 把它作为输入法核心，
+	  负责拼音到汉字的转换与词典编译。
+
+	  https://github.com/rime/librime

@@ -1,0 +1,32 @@
+# shuios / 氵系统 — 构建产物与本地状态
+/target/
+/output/
+/buildroot/
+/buildroot-*.tar.gz
+/br2-ext/artifacts/*
+!/br2-ext/artifacts/README.md
+/.cache/
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# 构建主机上可能落下的东西
+*.o
+*.a
+*.so
+
+# 磁盘镜像与打包产物（体积过大，不入库）
+*.img
+*.img.bak
+*.squashfs
+*.sqfs
+*.raw
+*.ppm
+/store-repo/
+/br2-ext/dl/
+/br2-ext/pkgrepo/
+/shuios.zip

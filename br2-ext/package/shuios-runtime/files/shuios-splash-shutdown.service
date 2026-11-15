@@ -1,0 +1,16 @@
+[Unit]
+Description=shuios 关机动画（无桌面时的兜底；桌面已画过则跳过）
+Documentation=https://github.com/shuios/shuios
+DefaultDependencies=no
+Before=shutdown.target umount.target
+Conflicts=shuios-splash.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# 桌面服务退场时已经在 ExecStopPost 里画过关机动画，这里避免重复
+ExecStart=/bin/sh -c '[ -e /run/shuios/.splash-done ] || exec /usr/bin/shuios-splash --mode shutdown --duration 2 --quiet'
+TimeoutStartSec=8
+
+[Install]
+WantedBy=shutdown.target

@@ -1,0 +1,16 @@
+config BR2_PACKAGE_SHUI_LOCK
+	bool "shui-lock（锁屏 + 空闲自动锁定）"
+	depends on BR2_PACKAGE_LIBGTK3
+	select BR2_PACKAGE_LIBGTK3_WAYLAND
+	select BR2_PACKAGE_LIBXCRYPT
+	select BR2_PACKAGE_LIBXKBCOMMON
+	select BR2_PACKAGE_WAYLAND
+	help
+	  shuios 锁屏：全屏 OVERLAY 图层（gtk-layer-shell）盖住任务栏和
+	  所有窗口，密码校验读 /etc/shadow（镜像没有 PAM）。锁屏期间切到
+	  sway 的 "shui-lock" binding mode，默认快捷键全部失效。
+
+	  同时安装 shui-idle（evdev 空闲检测，超时自动锁屏）和 shui-key
+	  （Wayland 虚拟键盘注入，供锁屏验收与智能体自动化使用）。
+
+	  https://github.com/shuios/shuios

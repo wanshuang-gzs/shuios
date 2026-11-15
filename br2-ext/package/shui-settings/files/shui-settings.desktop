@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=氵 设置
+Name[en]=shuios Settings
+Comment=网络与系统设置
+Exec=/usr/bin/shui-settings
+Icon=preferences-system
+Terminal=false
+Categories=Settings;System;
+Keywords=settings;wifi;network;设置;网络;Wi-Fi;

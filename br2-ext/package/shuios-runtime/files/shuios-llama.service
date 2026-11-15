@@ -1,0 +1,27 @@
+[Unit]
+Description=shuios 本地推理服务（llama.cpp）
+Documentation=https://github.com/shuios/shuios
+After=shuiosd.service shuios-storage.service
+Wants=shuiosd.service
+# 只有模型仓库里真的有 .gguf 时才启动；没有模型就不占用内存。
+ConditionPathExistsGlob=/var/lib/shuios/models/*.gguf
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/shuios/shuios-llama
+Restart=on-failure
+RestartSec=5
+# 大模型需要锁定内存（mlock），否则运行中被换出会卡死
+LimitMEMLOCK=infinity
+LimitNOFILE=1048576
+Nice=-5
+# 注意：**不能**加 PrivateNetwork=yes。那会把服务放进独立网络命名空间，
+# shuiosd / shui 就再也连不上它的 127.0.0.1:8080 了。
+# "不对外暴露"靠的是服务只 bind 回环地址（见 shuios-llama 脚本里的 --host）。
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/shuios
+
+[Install]
+WantedBy=multi-user.target

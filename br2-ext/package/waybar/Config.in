@@ -1,0 +1,18 @@
+config BR2_PACKAGE_WAYBAR
+	bool "waybar（现成的 Wayland 任务栏）"
+	depends on BR2_PACKAGE_GTK_LAYER_SHELL
+	depends on BR2_TOOLCHAIN_BUILDROOT_CXX || BR2_TOOLCHAIN_EXTERNAL_CXX
+	select BR2_PACKAGE_GTKMM3
+	select BR2_PACKAGE_LIBSIGC
+	select BR2_PACKAGE_JSONCPP
+	select BR2_PACKAGE_FMT
+	select BR2_PACKAGE_SPDLOG
+	select BR2_PACKAGE_LIBNL
+	help
+	  成熟度很高的 Wayland 面板/任务栏（layer-shell + CSS 主题）：
+	  工作区、窗口任务列表（wlr/taskbar）、时钟、托盘、自定义模块。
+
+	  shuios 用它在"像 Windows"这条路上直接抄现成答案，
+	  自研的 shui-panel 保留作为兜底。
+
+	  https://github.com/Alexays/Waybar
