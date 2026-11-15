@@ -64,7 +64,10 @@ BR2_TARGET_ROOTFS_TAR=n
 # ---- 引导：UEFI + GRUB2 ------------------------------------------------
 BR2_TARGET_GRUB2=y
 BR2_TARGET_GRUB2_X86_64_EFI=y
-BR2_TARGET_GRUB2_BUILTIN_MODULES_EFI="boot linux ext2 fat squash4 part_msdos part_gpt normal efi_gop efi_uga search configfile all_video gfxterm gzio test"
+# loadenv：A/B 状态（grubenv 里的 shuios_slot/state）靠它的 load_env/save_env
+# 读写；search_label：用卷标找 ESP。ESP 上只有 bootx64.efi，没有模块目录，
+# 缺了这两个 grub.cfg 里的 insmod 必然失败，状态机整体失效（永远从槽 A 启动）。
+BR2_TARGET_GRUB2_BUILTIN_MODULES_EFI="boot linux ext2 fat squash4 part_msdos part_gpt normal efi_gop efi_uga search search_label loadenv configfile all_video gfxterm gzio test"
 BR2_TARGET_GRUB2_INSTALL_TOOLS=y
 
 # ---- 磁盘映像工具（genimage 需要 vfat/ext4 工具）-----------------------
