@@ -1,0 +1,353 @@
+# shuios aarch64 默认配置（QEMU virt / ARM64 UEFI）
+#
+# 用法：
+#   make BR2_EXTERNAL=$(pwd)/br2-ext shuios_aarch64_defconfig
+#   make BR2_EXTERNAL=$(pwd)/br2-ext
+#
+# 目标形态：只读 squashfs 根 + ext4 数据分区，UEFI 直接启动，
+# systemd 管理服务，用户态是我们的 Rust 组件。
+#
+# 说明：本文件中的选项名已对照 Buildroot 2025.02.9 的 Kconfig 校验过。
+
+# ---- 架构与工具链 ------------------------------------------------------
+# LLVM/mesa 编译很吃内存（WSL 只有约 11.6GB），并行度压到 12
+BR2_JLEVEL=8
+BR2_aarch64=y
+BR2_cortex_a72=y
+BR2_TOOLCHAIN_BUILDROOT_GLIBC=y
+# C++ 支持：内部工具链的正确选项是 BUILDROOT_CXX（INSPALL_LIBSTDCPP 只是内部符号，无提示菜单）
+BR2_TOOLCHAIN_BUILDROOT_CXX=y
+BR2_OPTIMIZE_2=y
+BR2_ENABLE_LOCALE=y
+
+# ---- 系统标识 ----------------------------------------------------------
+BR2_TARGET_GENERIC_HOSTNAME="shui"
+BR2_TARGET_GENERIC_ISSUE=""
+BR2_TARGET_GENERIC_ROOT_PASSWD="shui"
+BR2_TARGET_GENERIC_GETTY_PORT="tty2"
+BR2_TARGET_GENERIC_GETTY_BAUDRATE_115200=y
+# 网络地址改由 NetworkManager 统一管理（DHCP 默认，见下方网络包）
+BR2_TARGET_GENERIC_REMOUNT_ROOTFS_RW=n
+
+# ---- init 与文件系统骨架 ----------------------------------------------
+BR2_INIT_SYSTEMD=y
+BR2_ROOTFS_MERGED_USR=y
+BR2_SYSTEM_BIN_SH_BASH=y
+
+# ---- 覆盖层与钩子 ------------------------------------------------------
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_SHUIOS_PATH)/board/shuios/common/rootfs-overlay"
+BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_SHUIOS_PATH)/board/shuios/aarch64/post-build.sh"
+BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_SHUIOS_PATH)/board/shuios/aarch64/post-image.sh"
+# 上游包的补丁（wlroots 帧率节流等），目录结构 <pkg>/<version>/*.patch
+BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_SHUIOS_PATH)/patches"
+# 生成 UTF-8 locale（进 /usr/lib/locale/locale-archive）。
+# 不生成的话连 C.UTF-8 都没有：GTK 报警告，foot 直接拒绝启动。
+# Buildroot 用自己编的 host-localedef（同 2.41）生成，不依赖宿主的 locale 数据。
+BR2_GENERATE_LOCALE="zh_CN.UTF-8 en_US.UTF-8 C.UTF-8"
+
+# ---- 内核 --------------------------------------------------------------
+BR2_LINUX_KERNEL=y
+BR2_LINUX_KERNEL_LATEST_VERSION=y
+# arm64 用内核默认 defconfig（Buildroot 自动拼 "_defconfig"）
+BR2_LINUX_KERNEL_USE_ARCH_DEFAULT_CONFIG=y
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_SHUIOS_PATH)/board/shuios/common/kernel-shuios.fragment $(BR2_EXTERNAL_SHUIOS_PATH)/board/shuios/aarch64/kernel-shuios-aarch64.fragment"
+BR2_LINUX_KERNEL_INSTALL_TARGET=y
+BR2_LINUX_KERNEL_ZSTD=y
+BR2_LINUX_KERNEL_IMAGE=y
+# objtool 需要 host 的 libelf（否则 tools/objtool 报 fatal error: gelf.h: No such file）
+BR2_LINUX_KERNEL_NEEDS_HOST_LIBELF=y
+
+# ---- 根文件系统镜像 ----------------------------------------------------
+BR2_TARGET_ROOTFS_SQUASHFS=y
+BR2_TARGET_ROOTFS_SQUASHFS4_XZ=y
+BR2_TARGET_ROOTFS_TAR=n
+
+# ---- 引导：UEFI + GRUB2 ------------------------------------------------
+BR2_TARGET_GRUB2=y
+BR2_TARGET_GRUB2_ARM64_EFI=y
+# loadenv：A/B 状态（grubenv 里的 shuios_slot/state）靠它的 load_env/save_env
+# 读写；search_label：用卷标找 ESP。ESP 上只有 bootx64.efi，没有模块目录，
+# 缺了这两个 grub.cfg 里的 insmod 必然失败，状态机整体失效（永远从槽 A 启动）。
+BR2_TARGET_GRUB2_BUILTIN_MODULES_EFI="boot linux ext2 fat squash4 part_msdos part_gpt normal efi_gop search search_label loadenv configfile all_video gfxterm gzio test"
+BR2_TARGET_GRUB2_INSTALL_TOOLS=y
+
+# ---- 磁盘映像工具（genimage 需要 vfat/ext4 工具）-----------------------
+BR2_PACKAGE_HOST_GENIMAGE=y
+BR2_PACKAGE_HOST_DOSFSTOOLS=y
+BR2_PACKAGE_HOST_E2FSPROGS=y
+BR2_PACKAGE_HOST_MTOOLS=y
+
+# ---- shuios 自有组件 ---------------------------------------------------
+BR2_PACKAGE_SHUIOS_RUNTIME=y
+
+# ---- AI 后端：本地推理引擎 ---------------------------------------------
+# llama.cpp 提供 llama-server（OpenAI 兼容，监听 127.0.0.1:8080），
+# shui 的自然语言能力由它支撑。没有模型时该服务不会启动（ConditionPathExistsGlob）。
+# BR2_PACKAGE_LLAMA_CPP=y   # aarch64 手机首版：先瘦身
+
+# ---- 基础用户态 --------------------------------------------------------
+BR2_PACKAGE_BUSYBOX_SHOW_OTHERS=y
+BR2_PACKAGE_UTIL_LINUX=y
+BR2_PACKAGE_UTIL_LINUX_BINARIES=y
+BR2_PACKAGE_UTIL_LINUX_MOUNT=y
+BR2_PACKAGE_UTIL_LINUX_MOUNTPOINT=y
+# libuuid：fcitx5 用它生成输入法配置的 UUID
+BR2_PACKAGE_UTIL_LINUX_LIBUUID=y
+BR2_PACKAGE_PROCPS_NG=y
+BR2_PACKAGE_IPROUTE2=y
+BR2_PACKAGE_KMOD=y
+BR2_PACKAGE_KMOD_TOOLS=y
+BR2_PACKAGE_CA_CERTIFICATES=y
+# curl 二进制给 shui-llm 发远程 HTTPS 用；LIBCURL_CURL 只是子选项，
+# 必须同时打开 BR2_PACKAGE_LIBCURL 和 TLS 后端，否则会被静默丢弃。
+BR2_PACKAGE_LIBCURL=y
+BR2_PACKAGE_LIBCURL_CURL=y
+BR2_PACKAGE_LIBCURL_OPENSSL=y
+BR2_PACKAGE_WGET=y
+BR2_PACKAGE_JQ=y
+BR2_PACKAGE_TMUX=y
+BR2_PACKAGE_NANO=y
+BR2_PACKAGE_OPENSSH=y
+BR2_PACKAGE_STRACE=y
+BR2_PACKAGE_LSOF=y
+
+# ---- 图形栈：Wayland 桌面 ----------------------------------------------
+# shuios 桌面版 = Wayland(swayfx) + shui-panel + 自研 GTK3 应用。
+# 系统本体没有 X11，只有给第三方闭源软件用的 XWayland 兼容层（见下）。
+# 没有 GTK4、没有 Chromium 内核（浏览器用 WebKitGTK）。
+BR2_PACKAGE_WAYLAND=y
+BR2_PACKAGE_WAYLAND_PROTOCOLS=y
+BR2_PACKAGE_LIBDRM=y
+BR2_PACKAGE_LIBINPUT=y
+BR2_PACKAGE_LIBXKBCOMMON=y
+BR2_PACKAGE_XKEYBOARD_CONFIG=y
+BR2_PACKAGE_PIXMAN=y
+
+# Mesa：软件渲染(llvmpipe) + 常见 Intel 核显 + QEMU virtio-gpu
+BR2_PACKAGE_MESA3D=y
+BR2_PACKAGE_MESA3D_LLVM=y
+BR2_PACKAGE_MESA3D_OPENGL_EGL=y
+BR2_PACKAGE_MESA3D_OPENGL_ES=y
+BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_SWRAST=y
+BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_VIRGL=y
+# svga：VMware Workstation 的 vmware-svga 设备（vmwgfx 内核驱动）
+# 没有它就没有 vmwgfx_dri.so，EGL 初始化失败，sway 起不来。
+# kmsro：让 llvmpipe 能直接配合 KMS 设备（bochs/virtio-gpu），
+# 否则 wlroots 找不到 bochs-drm_dri.so，EGL 直接失败
+BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_KMSRO=y
+
+# ---- X11 兼容层：XWayland --------------------------------------------
+# 本系统自身全程 Wayland，但市面上绝大多数闭源 Linux 软件（微信 / 钉钉 /
+# 飞书 / VS Code / 各种 Electron 应用）只有 X11 客户端，没有 XWayland 连
+# 窗口都创建不出来（启动即 "cannot open display"）。
+#
+# 代价：多一套 X.org 库和 Xwayland 服务端，镜像 +几十 MB；桌面本身不变。
+# XORG7 是 wlroots 的 XWayland 功能的前置开关（它同时让 libxkbcommon 编出
+# libxkbcommon-x11，闭源应用同样依赖它）。
+BR2_PACKAGE_XORG7=y
+BR2_PACKAGE_WLROOTS_XWAYLAND=y
+# BR2_PACKAGE_XWAYLAND=y   # aarch64 手机首版：x.org 源不可达，先关（X11 应用用不上）
+# NSS/NSPR：Chromium/Electron 系的证书与加密层，微信、VS Code 都硬依赖
+BR2_PACKAGE_LIBNSS=y
+BR2_PACKAGE_LIBNSPR=y
+# X11 自检工具：没有图形应用时用它们验证 XWayland 是否真的在工作
+BR2_PACKAGE_XAPP_XDPYINFO=y
+BR2_PACKAGE_XAPP_XEYES=y
+BR2_PACKAGE_XAPP_XCLOCK=y
+# 第三方闭源包（微信 4.x 实测）的 ELF 直接 NEEDED 这些库，缺一个就加载失败：
+#   libGL.so.1          → Mesa 的 GLX（有 X11 之后才能编）
+#   libXcomposite/damage → X11 合成/损坏扩展（窗口绘制必需）
+#   libxcb-keysyms       → 按键映射
+#   libcups.so.2         → 打印子系统（Chromium 系只是链接，不打印也要）
+#   libjack.so.0         → JACK 音频（同上，链接即必需）
+BR2_PACKAGE_MESA3D_OPENGL_GLX=y
+BR2_PACKAGE_XLIB_LIBXCOMPOSITE=y
+BR2_PACKAGE_XLIB_LIBXDAMAGE=y
+BR2_PACKAGE_XCB_UTIL_KEYSYMS=y
+BR2_PACKAGE_CUPS=y
+BR2_PACKAGE_JACK2=y
+
+# 字体（没有字体中文会变方框）
+BR2_PACKAGE_FONTCONFIG=y
+BR2_PACKAGE_DEJAVU=y
+BR2_PACKAGE_DEJAVU_MONO=y
+
+# 桌面本体
+#
+# v0.1 用 Weston；v0.2 起换成 sway（wlroots）：
+#   * 支持 wlr-layer-shell，自研面板/桌面图标都能做
+#   * 自带 swaybar（任务栏：工作区/窗口/时钟/tray）与 dmenu-wayland（启动器）
+#   * i3 风格键位，配置文件直观
+# Weston 暂时保留（可作为救援合成器），默认会话由 shuios-session 决定。
+BR2_PACKAGE_WESTON=y
+BR2_PACKAGE_WESTON_DEFAULT_DRM=y
+BR2_PACKAGE_WESTON_DRM=y
+BR2_PACKAGE_WESTON_SHELL_DESKTOP=y
+BR2_PACKAGE_WESTON_SIMPLE_CLIENTS=y
+
+# 合成器：swayfx（= sway + scenefx），自带圆角 / 窗口阴影 / 背景模糊，
+# 这是"像 macOS/Windows 一样好看"在 Wayland 上的唯一现成路线。
+# 注意：swayfx 与上游 sway 都装 /usr/bin/sway，两者互斥，不能同时选。
+# 二进制的名字仍是 sway，所以 shui-ctl 的 i3 IPC 调用、会话脚本都不用改。
+BR2_PACKAGE_SWAYFX=y
+BR2_PACKAGE_SWAYFX_SWAYBAR=y
+BR2_PACKAGE_SWAYFX_SWAYBAR_TRAY=y
+# swaynag：sway-config 里 $mod+Shift+E「退出桌面」的确认条，缺了那条键位就哑了
+BR2_PACKAGE_SWAYFX_SWAYNAG=y
+BR2_PACKAGE_SWAYBG=y
+
+# seatd：Weston 的 DRM 后端通过 libseat 抢显示区，libseat 先试 logind
+# （root 作为 system 服务没有登录会话，会失败），再试 seatd。
+# 没有它 Weston 会 fatal: failed to create compositor backend，屏幕全黑。
+BR2_PACKAGE_SEATD=y
+# builtin 后端：libseat 在进程内直接拿 seat（root 可用），
+# 这是 Weston 之前能跑的原因。只开 DAEMON 会把 builtin 关掉，
+# 而 seatd 守护进程在 VT 绑定场景下会报
+#   seat is VT-bound and has an active client
+# 导致 sway/weston 都拿不到显示。两个都开，libseat 会自动挑可用的。
+BR2_PACKAGE_SEATD_BUILTIN=y
+BR2_PACKAGE_SEATD_DAEMON=y
+
+# 应用
+BR2_PACKAGE_FOOT=y
+# 中文字体：没有它「氵」「软件商店」这些字全是豆腐块
+BR2_PACKAGE_WQY_ZENHEI=y
+
+# ---- 中文输入法：fcitx5 + Rime --------------------------------------
+# 验收门槛：foot 与 shui-browser 里都能打中文。
+#   * fcitx5 只编 Wayland 前端（ENABLE_X11=OFF），候选窗走 classic UI；
+#   * Rime 方案用 luna_pinyin_simp（朙月拼音·简化字），首次启动部署词典；
+#   * OpenCC 词典在 host 侧生成（交叉编译不能执行 target 二进制）；
+#   * librsvg 复用 WebKit 已经建好的 host-rustc，不再编 Rust 工具链。
+BR2_PACKAGE_LIBRSVG=y
+BR2_PACKAGE_JSON_FOR_MODERN_CPP=y
+# librime 的依赖
+BR2_PACKAGE_BOOST=y
+BR2_PACKAGE_BOOST_REGEX=y
+BR2_PACKAGE_GFLAGS=y
+BR2_PACKAGE_GLOG=y
+BR2_PACKAGE_LEVELDB=y
+BR2_PACKAGE_YAML_CPP=y
+# 输入法本体与数据
+BR2_PACKAGE_ISO_CODES=y
+BR2_PACKAGE_MARISA_TRIE=y
+BR2_PACKAGE_OPENCC=y
+BR2_PACKAGE_LIBRIME=y
+BR2_PACKAGE_RIME_DATA=y
+BR2_PACKAGE_FCITX5=y
+BR2_PACKAGE_FCITX5_GTK=y
+# BR2_PACKAGE_FCITX5_RIME=y   # aarch64 手机首版：先瘦身
+# 文本浏览器：保留作轻量兜底（没有图形栈也能上网）。
+BR2_PACKAGE_LINKS=y
+BR2_PACKAGE_LIBGTK3=y
+BR2_PACKAGE_LIBGTK3_WAYLAND=y
+# GTK3 的 X11 后端：桌面自己不用，但 Chromium/Electron 系的第三方程序（
+# OnlyOffice、QQ音乐）会清掉 LD_LIBRARY_PATH 启动子进程，退回系统 GTK；
+# 系统 GTK 只有 Wayland 后端时它们直接报
+#   Gtk-ERROR: Can't create a GtkStyleContext without a display connection
+# 然后 abort。带上 X11 后端后，这类程序走 XWayland 也能起来。
+BR2_PACKAGE_LIBGTK3_X11=y
+
+# ---- 音频：PipeWire + WirePlumber + PulseAudio 兼容层 -----------------
+# 内核片段里已开启 snd-hda-intel 与常用 HDA codec；声卡本身要 VM 侧暴露
+# （run-vmware.ps1 钉 sound.* 键）。用户态：
+#   * pipewire 负责混音/路由，pipewire-alsa 让传统 ALSA 程序走它；
+#   * wireplumber 是会话/策略管理器，wpctl 用它调音量；
+#   * pipewire-pulse 提供 PulseAudio 协议，GStreamer 的 pulsesink 和
+#     WebKit 的多媒体走这条路；
+#   * pulseaudio 只取客户端库（不启用 DAEMON），pipewire-pulse 才是服务器。
+# 版本：Buildroot 2025.02 自带 pipewire 1.2.8 / wireplumber 0.5.5（需 Lua）。
+BR2_PACKAGE_LUA=y
+BR2_PACKAGE_LUA_5_4=y
+BR2_PACKAGE_PIPEWIRE=y
+BR2_PACKAGE_WIREPLUMBER=y
+BR2_PACKAGE_PULSEAUDIO=y
+# BR2_PACKAGE_PULSEAUDIO_DAEMON is not set
+BR2_PACKAGE_GST1_PLUGINS_GOOD_PLUGIN_PULSE=y
+BR2_PACKAGE_ALSA_UTILS=y
+BR2_PACKAGE_ALSA_UTILS_AMIXER=y
+BR2_PACKAGE_ALSA_UTILS_APLAY=y
+BR2_PACKAGE_ALSA_UTILS_SPEAKER_TEST=y
+
+# ---- 图形浏览器：WebKitGTK -------------------------------------------
+# 和 Safari 同内核，支持 JavaScript / CSS / 图片，这才算“正常浏览器”。
+# 代价：WebKit 本体编译以“天”计（20 核/15GB 实测），镜像 +200~300MB；
+# 多媒体再拉一套 GStreamer。之后改外壳只需 ~20 秒热部署。
+# 虚拟 GPU 上由 /usr/bin/shui-browser 包装脚本切到软件渲染（dmabuf 导入失败）。
+# BR2_PACKAGE_WEBKITGTK=y   # aarch64 手机首版：先瘦身
+# BR2_PACKAGE_WEBKITGTK_WAYLAND=y   # aarch64 手机首版：先瘦身
+# BR2_PACKAGE_WEBKITGTK_HTTPS=y   # aarch64 手机首版：先瘦身
+# BR2_PACKAGE_WEBKITGTK_MULTIMEDIA=y   # aarch64 手机首版：先瘦身
+# MiniBrowser 是 WebKit 自带的参考浏览器，留着做引擎自检和救急
+# BR2_PACKAGE_WEBKITGTK_MINIBROWSER=y   # aarch64 手机首版：先瘦身
+# 没有 MIME 数据库时 WebKit 把 file:// 的 .html 当纯文本显示（起始页变源码），
+# 所以必须带上 shared-mime-info。
+BR2_PACKAGE_SHARED_MIME_INFO=y
+# BR2_PACKAGE_SHUI_BROWSER=y   # aarch64 手机首版：先瘦身
+# 图标主题：没有它，开始菜单/商店/任务栏只能靠自绘"首字母方块"，
+# 而 .desktop 里的 Icon=system-software-install 这类名字无法解析。
+# hicolor 提供第三方图标的标准目录兜底，adwaita 提供成体系的真图标。
+BR2_PACKAGE_HICOLOR_ICON_THEME=y
+BR2_PACKAGE_ADWAITA_ICON_THEME=y
+# 软件商店（自研 GTK3 应用，配置见 package/shui-store）
+BR2_PACKAGE_SHUI_STORE=y
+# 文件管理器（自研 GTK3 应用，配置见 package/shui-files）
+BR2_PACKAGE_SHUI_FILES=y
+# 设置中心（自研 GTK3 应用，配置见 package/shui-settings）
+BR2_PACKAGE_SHUI_SETTINGS=y
+# Windows 风格底部任务栏（自研 GTK3 应用）
+BR2_PACKAGE_SHUI_PANEL=y
+# 锁屏 + 空闲自动锁定 + 按键注入（配置见 package/shui-lock）
+BR2_PACKAGE_SHUI_LOCK=y
+# 现成任务栏：waybar（layer-shell + CSS）。依赖 gtk-layer-shell，
+# Buildroot 没有，我们自己的包里带了源码。
+BR2_PACKAGE_GTK_LAYER_SHELL=y
+BR2_PACKAGE_WAYBAR=y
+# session D-Bus：waybar 启动时要连它（否则直接退出）
+BR2_PACKAGE_DBUS=y
+# 浏览器：NetSurf 的 GTK 前端在 gresource 生成阶段失败（child process exit 1），
+# 且 Buildroot 的 netsurf 包没有关闭文档生成的开关。v0.1 先不装浏览器，
+# 见 docs/04-路线图.md 未决问题。
+# BR2_PACKAGE_NETSURF=y
+# BR2_PACKAGE_NETSURF_GTK3=y
+# 文件管理器：PCManFM 硬依赖 X11（BR2_PACKAGE_XORG7），与 Wayland-only 冲突，
+# 因此改用终端里的 Midnight Commander（在 foot 里跑）
+BR2_PACKAGE_MC=y
+BR2_PACKAGE_NCDU=y
+# mc 需要宽字符 ncurses（ncursesw），否则链接报 mvin_wchnstr/setcchar 未定义
+BR2_PACKAGE_NCURSES_WCHAR=y
+BR2_PACKAGE_NCURSES_TARGET_PROGS=y
+
+# ---- 网络：NetworkManager（有线 + Wi-Fi） -----------------------------
+# 有线：网卡出现即自动 DHCP（NM 自动建 "Wired connection 1"）。
+# Wi-Fi：NM 默认后端是 wpa_supplicant（D-Bus 控制接口）。
+# 命令行用 nmcli 配网；图形入口是 shui-settings 的 Wi-Fi 页。
+BR2_PACKAGE_NETWORK_MANAGER=y
+BR2_PACKAGE_NETWORK_MANAGER_CLI=y
+# nmtui 依赖 newt，上游 pagure.io 2026 已归档、源码包 404，暂不启用。
+# nmtui 的职责由 nmcli 和 shui-settings 的 Wi-Fi 页承担。
+# BR2_PACKAGE_NETWORK_MANAGER_TUI is not set
+BR2_PACKAGE_WPA_SUPPLICANT=y
+BR2_PACKAGE_WPA_SUPPLICANT_NL80211=y
+BR2_PACKAGE_WPA_SUPPLICANT_DBUS=y
+BR2_PACKAGE_WPA_SUPPLICANT_CLI=y
+BR2_PACKAGE_WPA_SUPPLICANT_WPA3=y
+BR2_PACKAGE_IW=y
+BR2_PACKAGE_WIRELESS_REGDB=y
+BR2_PACKAGE_UTIL_LINUX_RFKILL=y
+# 验收用软 AP：VMware 没有无线网卡，用 mac80211_hwsim + hostapd
+# 造一对虚拟无线电，端到端验证扫描/连接/WPA2。
+BR2_PACKAGE_HOSTAPD=y
+BR2_PACKAGE_HOSTAPD_DRIVER_NL80211=y
+
+# ---- 系统服务 ----------------------------------------------------------
+# DNS 仍交给 systemd-resolved；NetworkManager 通过 D-Bus 把上游 DNS 推给它。
+# systemd-networkd 关闭，避免和 NM 抢网卡。
+# 该选项在 systemd 下默认 y，必须在 defconfig 里显式关掉。
+# BR2_PACKAGE_SYSTEMD_NETWORKD is not set
+BR2_PACKAGE_SYSTEMD_RESOLVED=y
+BR2_PACKAGE_SYSTEMD_TIMESYNCD=y
+BR2_PACKAGE_SYSTEMD_LOGIND=y
+
+# ---- 镜像大小取舍 ------------------------------------------------------
+BR2_TARGET_ROOTFS_INITRAMFS=n
