@@ -155,6 +155,15 @@ cat > "${TARGET_DIR}/etc/locale.conf" <<'EOF'
 LANG=zh_CN.UTF-8
 EOF
 
+# --- 运行期目录 ---------------------------------------------------------
+# aarch64 首版实测：rootfs 里缺这两个目录会让启动直接坏掉。
+#   /var/tmp：fstab 之外的挂载单元会失败 -> systemd 进 emergency mode
+#   /run/udev：udevd 的挂载单元加载失败 -> systemd-udevd 反复重启，
+#              所有 .device 单元超时（串口 getty 也因此起不来）
+mkdir -p "${TARGET_DIR}/var/tmp" "${TARGET_DIR}/run/udev"
+chmod 1777 "${TARGET_DIR}/var/tmp"
+chmod 0755 "${TARGET_DIR}/run/udev"
+
 # --- 记录构建信息 -------------------------------------------------------
 {
 	echo "shuios build"
